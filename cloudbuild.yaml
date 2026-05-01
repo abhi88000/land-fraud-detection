@@ -89,6 +89,3 @@ substitutions:
   _FIREBASE_APP_ID: '1:593405835352:web:2e23ca4c05bc28405b722d'
   _BACKEND_API_URL: ''
   _FRONTEND_URL: ''
-
-options:
-  logging: CLOUD_LOGGING
