@@ -52,10 +52,14 @@ steps:
       - '--allow-unauthenticated'
       - '--set-env-vars'
       - 'GCP_PROJECT_ID=${PROJECT_ID},GCP_LOCATION=${_REGION},GCS_BUCKET_NAME=land-guard-docs-${PROJECT_ID},FIREBASE_PROJECT_ID=${PROJECT_ID},ALLOW_GUEST_AUTH=false,CORS_ORIGINS=${_FRONTEND_URL}'
+      - '--port'
+      - '8000'
       - '--service-account'
       - 'sa-${PROJECT_ID}@${PROJECT_ID}.iam.gserviceaccount.com'
       - '--memory'
       - '1Gi'
+      - '--timeout'
+      - '300'
 
   # --- Deploy Frontend to Cloud Run ---
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
