@@ -8,10 +8,28 @@ steps:
     id: 'push-backend'
     args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:${SHORT_SHA}']
 
-  # --- Frontend Build & Push ---
+  # --- Build Frontend with build args ---
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-frontend'
-    args: ['build', '-t', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:${SHORT_SHA}', './frontend']
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_API_KEY=${_FIREBASE_API_KEY}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${_FIREBASE_AUTH_DOMAIN}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_PROJECT_ID=${PROJECT_ID}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${_FIREBASE_STORAGE_BUCKET}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${_FIREBASE_MESSAGING_SENDER_ID}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_APP_ID=${_FIREBASE_APP_ID}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_BACKEND_API_URL=${_BACKEND_API_URL}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:${SHORT_SHA}'
+      - './frontend'
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-frontend'
@@ -32,6 +50,12 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'GCP_PROJECT_ID=${PROJECT_ID},GCP_LOCATION=${_REGION},GCS_BUCKET_NAME=land-guard-docs-${PROJECT_ID},FIREBASE_PROJECT_ID=${PROJECT_ID},ALLOW_GUEST_AUTH=false,CORS_ORIGINS=${_FRONTEND_URL}'
+      - '--service-account'
+      - 'sa-${PROJECT_ID}@${PROJECT_ID}.iam.gserviceaccount.com'
+      - '--memory'
+      - '1Gi'
 
   # --- Deploy Frontend to Cloud Run ---
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -48,6 +72,8 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
 
 images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:${SHORT_SHA}'
@@ -56,6 +82,13 @@ images:
 substitutions:
   _REGION: us-central1
   _REPOSITORY: land-guard
+  _FIREBASE_API_KEY: AIzaSyD-mgQuXtECcxCvt0N69_c246IAsZNXOXw
+  _FIREBASE_AUTH_DOMAIN: trust-trailblazers.firebaseapp.com
+  _FIREBASE_STORAGE_BUCKET: trust-trailblazers.firebasestorage.app
+  _FIREBASE_MESSAGING_SENDER_ID: '593405835352'
+  _FIREBASE_APP_ID: '1:593405835352:web:2e23ca4c05bc28405b722d'
+  _BACKEND_API_URL: ''
+  _FRONTEND_URL: ''
 
 options:
   logging: CLOUD_LOGGING

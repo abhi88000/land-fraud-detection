@@ -9,6 +9,10 @@ env/
 .env
 .pytest_cache/
 
+# Secrets
+service-account.json
+*.json.key
+
 # Node.js
 node_modules/
 .next/

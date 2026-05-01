@@ -1,7 +1,8 @@
 import { Document } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
-const API_V1 = `${API_BASE_URL}/api/v1`;
+// NEXT_PUBLIC_BACKEND_API_URL should be the full base like http://localhost:8000/api/v1
+const API_V1 = API_BASE_URL;
 
 export async function fetchDocuments(token?: string): Promise<{ documents: Document[] }> {
   try {
