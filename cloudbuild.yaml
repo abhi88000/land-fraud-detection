@@ -91,5 +91,5 @@ substitutions:
   _FIREBASE_STORAGE_BUCKET: trust-trailblazers.firebasestorage.app
   _FIREBASE_MESSAGING_SENDER_ID: '593405835352'
   _FIREBASE_APP_ID: '1:593405835352:web:2e23ca4c05bc28405b722d'
-  _BACKEND_API_URL: 'https://land-guard-api-uvgzgnof7a-uc.a.run.app'
+  _BACKEND_API_URL: 'https://land-guard-api-uvgzgnof7a-uc.a.run.app/api/v1'
   _FRONTEND_URL: 'https://land-guard-web-uvgzgnof7a-uc.a.run.app'
