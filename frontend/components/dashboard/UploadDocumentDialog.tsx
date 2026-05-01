@@ -13,13 +13,12 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { uploadDocument } from '@/lib/api';
-import { Document } from '@/lib/types';
 import { useAuth } from '@/lib/firebase/auth';
 
 interface UploadDocumentDialogProps {
   open: boolean;
   onClose: () => void;
-  onUploadSuccess: (newDoc: Document) => void;
+  onUploadSuccess: () => void;
 }
 
 const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
@@ -46,8 +45,8 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
     setError(null);
     try {
       const token = await user?.getIdToken();
-      const newDoc = await uploadDocument(file, token);
-      onUploadSuccess(newDoc);
+      await uploadDocument(file, token);
+      onUploadSuccess();
       setFile(null);
       onClose();
     } catch (err: any) {

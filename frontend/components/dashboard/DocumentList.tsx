@@ -26,7 +26,7 @@ const getStatusColor = (status: DocumentStatus) => {
   switch (status) {
     case DocumentStatus.COMPLETED:
       return 'success';
-    case DocumentStatus.PROCESSING:
+    case DocumentStatus.IN_PROGRESS:
       return 'warning';
     case DocumentStatus.FAILED:
       return 'error';
@@ -54,16 +54,16 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete }) => {
             <TableCell><strong>Document Name</strong></TableCell>
             <TableCell><strong>Type</strong></TableCell>
             <TableCell><strong>Status</strong></TableCell>
-            <TableCell><strong>Risk Score</strong></TableCell>
-            <TableCell><strong>Uploaded At</strong></TableCell>
+            <TableCell><strong>Progress</strong></TableCell>
+            <TableCell><strong>Created At</strong></TableCell>
             <TableCell align="center"><strong>Actions</strong></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {documents.map((doc) => (
             <TableRow key={doc.id} hover>
-              <TableCell>{doc.name}</TableCell>
-              <TableCell>{doc.type}</TableCell>
+              <TableCell>{doc.file_name}</TableCell>
+              <TableCell>{doc.content_type}</TableCell>
               <TableCell>
                 <Chip
                   label={doc.status.toUpperCase()}
@@ -72,10 +72,10 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete }) => {
                 />
               </TableCell>
               <TableCell>
-                {doc.riskScore !== undefined ? `${doc.riskScore}/100` : 'N/A'}
+                {doc.progress_percentage !== undefined ? `${doc.progress_percentage}%` : 'N/A'}
               </TableCell>
               <TableCell>
-                {new Date(doc.uploadedAt).toLocaleDateString()}
+                {new Date(doc.created_at).toLocaleDateString()}
               </TableCell>
               <TableCell align="center">
                 <IconButton

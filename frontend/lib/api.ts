@@ -14,14 +14,14 @@ export async function fetchDocuments(token?: string): Promise<{ documents: Docum
       throw new Error('Failed to fetch documents');
     }
     const result = await response.json();
-    return { documents: result.data || [] };
+    return { documents: result.documents || [] };
   } catch (error) {
     console.error('Error fetching documents:', error);
     return { documents: [] };
   }
 }
 
-export async function uploadDocument(file: File, token?: string): Promise<Document> {
+export async function uploadDocument(file: File, token?: string): Promise<{ document_id: string; message: string }> {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -41,8 +41,7 @@ export async function uploadDocument(file: File, token?: string): Promise<Docume
     throw new Error(errorData.detail || 'Failed to upload document');
   }
 
-  const result = await response.json();
-  return result.data;
+  return await response.json();
 }
 
 export async function fetchDocumentDetails(id: string, token?: string): Promise<{ document: Document }> {
@@ -55,7 +54,7 @@ export async function fetchDocumentDetails(id: string, token?: string): Promise<
     throw new Error('Failed to fetch document details');
   }
   const result = await response.json();
-  return { document: result.data };
+  return { document: result.document };
 }
 
 export async function fetchAnalysisReport(id: string, token?: string): Promise<{ report: any }> {
@@ -68,5 +67,5 @@ export async function fetchAnalysisReport(id: string, token?: string): Promise<{
     throw new Error('Failed to fetch analysis report');
   }
   const result = await response.json();
-  return { report: result.data };
+  return { report: result.report };
 }

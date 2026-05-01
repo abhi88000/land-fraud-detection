@@ -28,13 +28,24 @@ async def upload_document(
     if not file.content_type or file.content_type not in allowed_content_types:
         raise InvalidFileFormatException(allowed_formats=[ct.split('/')[-1] for ct in allowed_content_types])
 
+    # File size limit: 20MB
+    MAX_FILE_SIZE = 20 * 1024 * 1024
+    file_content = await file.read()
+    if len(file_content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File size exceeds the maximum limit of 20MB."
+        )
+
     document_id = str(uuid.uuid4())
     user_id = current_user.uid
-    file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'bin'
+    # Sanitize filename: keep only alphanumeric, dots, hyphens, underscores
+    import re
+    safe_filename = re.sub(r'[^\w.\-]', '_', file.filename or 'document')
+    file_extension = safe_filename.rsplit('.', 1)[-1] if '.' in safe_filename else 'bin'
     gcs_file_path = f"users/{user_id}/documents/{document_id}.{file_extension}"
 
     try:
-        file_content = await file.read()
         gcs_uri = await gcs.upload_file(gcs_file_path, file_content, file.content_type)
     except Exception as e:
         logger.error(f"Error uploading file to GCS for document {document_id}: {e}")
