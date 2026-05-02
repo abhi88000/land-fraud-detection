@@ -2,11 +2,11 @@ steps:
   # --- Backend Build & Push ---
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-backend'
-    args: ['build', '-t', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:${SHORT_SHA}', './backend']
+    args: ['build', '-t', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:${_TAG}', './backend']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-backend'
-    args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:${SHORT_SHA}']
+    args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:${_TAG}']
 
   # --- Build Frontend with build args ---
   - name: 'gcr.io/cloud-builders/docker'
@@ -28,12 +28,12 @@ steps:
       - '--build-arg'
       - 'NEXT_PUBLIC_BACKEND_API_URL=${_BACKEND_API_URL}'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:${SHORT_SHA}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:${_TAG}'
       - './frontend'
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-frontend'
-    args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:${SHORT_SHA}']
+    args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:${_TAG}']
 
   # --- Deploy Backend to Cloud Run ---
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -44,7 +44,7 @@ steps:
       - 'deploy'
       - 'land-guard-api'
       - '--image'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:${SHORT_SHA}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:${_TAG}'
       - '--region'
       - '${_REGION}'
       - '--platform'
@@ -70,7 +70,7 @@ steps:
       - 'deploy'
       - 'land-guard-web'
       - '--image'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:${SHORT_SHA}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:${_TAG}'
       - '--region'
       - '${_REGION}'
       - '--platform'
@@ -80,16 +80,20 @@ steps:
       - '512Mi'
 
 images:
-  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:${SHORT_SHA}'
-  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:${_TAG}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:${_TAG}'
 
 substitutions:
   _REGION: us-central1
   _REPOSITORY: land-guard
+  _TAG: latest
   _FIREBASE_API_KEY: AIzaSyD-mgQuXtECcxCvt0N69_c246IAsZNXOXw
   _FIREBASE_AUTH_DOMAIN: trust-trailblazers.firebaseapp.com
   _FIREBASE_STORAGE_BUCKET: trust-trailblazers.firebasestorage.app
   _FIREBASE_MESSAGING_SENDER_ID: '593405835352'
   _FIREBASE_APP_ID: '1:593405835352:web:2e23ca4c05bc28405b722d'
-  _BACKEND_API_URL: 'https://land-guard-api-uvgzgnof7a-uc.a.run.app/api/v1'
-  _FRONTEND_URL: 'https://land-guard-web-uvgzgnof7a-uc.a.run.app'
+  _BACKEND_API_URL: 'https://land-guard-api-593405835352.us-central1.run.app/api/v1'
+  _FRONTEND_URL: 'https://land-guard-web-593405835352.us-central1.run.app'
+
+options:
+  dynamic_substitutions: true
