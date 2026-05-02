@@ -59,14 +59,14 @@ class ReportGeneratorAgent(BaseAgent[ReportInput, AnalysisReport]):
         # Overall score is an average (can be weighted)
         overall_score = int((legal_score + fraud_score + completeness_score) / 3)
         # Invert the score for user readability (lower score = better)
-        overall_score = 100 - overall_score
+        overall_score = max(0, min(100, 100 - overall_score))
 
         risk_score = RiskScore(
             overall_score=overall_score,
             category_scores={
-                "legal_compliance": 100 - legal_score,
-                "fraud_detection": 100 - fraud_score,
-                "data_completeness": 100 - completeness_score
+                "legal_compliance": max(0, min(100, 100 - legal_score)),
+                "fraud_detection": max(0, min(100, 100 - fraud_score)),
+                "data_completeness": max(0, min(100, 100 - completeness_score))
             }
         )
 

@@ -65,7 +65,7 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
                 f"and check if this document shows similar patterns."
             )
 
-            response = self.client.models.generate_content(
+            response = await self.client.aio.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=[
                     types.Content(
@@ -76,28 +76,34 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
                 config=types.GenerateContentConfig(
                     system_instruction=FRAUD_SYSTEM_PROMPT,
                     temperature=0.2,
-                    tools=[types.Tool(google_search=types.GoogleSearch())],
                     response_mime_type="application/json",
                 ),
             )
 
             response_text = response.text.strip()
             parsed_findings = json.loads(response_text)
+            if isinstance(parsed_findings, dict):
+                parsed_findings = parsed_findings.get("findings", [parsed_findings])
 
             findings = []
             for f in parsed_findings:
-                fraud_type_str = f.get("fraud_type", "unknown")
+                fraud_type_str = f.get("fraud_type", "unknown").lower()
                 try:
                     fraud_type = FraudType(fraud_type_str)
                 except ValueError:
                     fraud_type = FraudType.UNKNOWN
 
+                try:
+                    sev = Severity(f.get("severity", "low").lower())
+                except ValueError:
+                    sev = Severity.LOW
+
                 findings.append(FraudFinding(
                     fraud_type=fraud_type,
                     description=f.get("description", ""),
                     is_suspicious=f.get("is_suspicious", False),
-                    severity=Severity(f.get("severity", "low")),
-                    evidence=f.get("evidence", []),
+                    severity=sev,
+                    evidence=f.get("evidence") or [],
                     recommendation=f.get("recommendation"),
                 ))
 

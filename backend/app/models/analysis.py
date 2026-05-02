@@ -129,7 +129,7 @@ class FraudFinding(BaseModel):
         }
 
 class RiskScore(BaseModel):
-    overall_score: int = Field(..., ge=0, le=100, description="Overall risk score (0-100, lower is better)")
+    overall_score: int = Field(default=50, ge=0, le=100, description="Overall risk score (0-100, lower is better)")
     category_scores: Dict[str, int] = Field(default_factory=dict, description="Risk scores broken down by category (e.g., 'legal', 'fraud')")
 
     class Config:

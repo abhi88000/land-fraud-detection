@@ -49,7 +49,7 @@ class LegalRulesAgent(BaseAgent[ExtractedData, List[LegalFinding]]):
         await self._update_progress(document_id, "Applying Indian land law compliance checks...", 30, "legal_checks_started")
 
         try:
-            response = self.client.models.generate_content(
+            response = await self.client.aio.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=[
                     types.Content(
@@ -70,14 +70,20 @@ class LegalRulesAgent(BaseAgent[ExtractedData, List[LegalFinding]]):
 
             response_text = response.text.strip()
             parsed_findings = json.loads(response_text)
+            if isinstance(parsed_findings, dict):
+                parsed_findings = parsed_findings.get("findings", [parsed_findings])
 
             findings = []
             for f in parsed_findings:
+                try:
+                    sev = Severity(f.get("severity", "low").lower())
+                except ValueError:
+                    sev = Severity.LOW
                 findings.append(LegalFinding(
                     rule_id=f.get("rule_id", "L-000"),
                     description=f.get("description", ""),
                     is_compliant=f.get("is_compliant", True),
-                    severity=Severity(f.get("severity", "low")),
+                    severity=sev,
                     explanation=f.get("explanation", ""),
                     remediation_suggestion=f.get("remediation_suggestion"),
                 ))

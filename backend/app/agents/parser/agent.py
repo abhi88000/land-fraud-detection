@@ -73,8 +73,8 @@ class DocumentParserAgent(BaseAgent[str, ExtractedData]):
             elif gcs_path.lower().endswith(".tiff"):
                 mime_type = "image/tiff"
 
-            # Call Gemini for multimodal document analysis
-            response = self.client.models.generate_content(
+            # Call Gemini for multimodal document analysis (async)
+            response = await self.client.aio.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=[
                     types.Content(
@@ -130,7 +130,7 @@ class DocumentParserAgent(BaseAgent[str, ExtractedData]):
                 document_type=parsed_json.get("document_type"),
                 party_names=party_names,
                 property_details=property_details,
-                dates=parsed_json.get("dates", {}),
+                dates=parsed_json.get("dates") or {},
                 registration_info=registration_info,
                 stamp_duty_amount=parsed_json.get("stamp_duty_amount"),
                 signatures_present=parsed_json.get("signatures_present"),
@@ -140,11 +140,13 @@ class DocumentParserAgent(BaseAgent[str, ExtractedData]):
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse Gemini response as JSON for document {document_id}: {e}")
             await self._update_progress(document_id, f"Document parsing failed: Could not parse AI response", 100, "parsing_failed")
-            raise
+            # Return empty extracted data instead of crashing
+            extracted_data = ExtractedData()
         except Exception as e:
             logger.error(f"Document parsing failed for {document_id}: {e}")
             await self._update_progress(document_id, f"Document parsing failed: {e}", 100, "parsing_failed")
-            raise
+            # Return empty extracted data instead of crashing
+            extracted_data = ExtractedData()
 
         await self._update_progress(document_id, "Document parsing complete.", 25, "document_parsed", data=extracted_data.dict())
         return extracted_data
