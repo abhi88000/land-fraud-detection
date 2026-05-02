@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchDocumentDetails, fetchAnalysisReport } from '@/lib/api';
-import { Document, AnalysisReport, DocumentStatus, AnalysisProgressEvent, LegalFinding, FraudFinding } from '@/lib/types';
+import { Document, AnalysisReport, DocumentStatus, AnalysisProgressEvent } from '@/lib/types';
 import ReportDisplay from '@/components/analysis/ReportDisplay';
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -61,28 +61,23 @@ export default function DocumentAnalysisPage() {
       }
     };
 
-    eventSourceRef.current.onerror = async (err) => {
-      console.error('EventSource failed:', err);
+    eventSourceRef.current.onerror = () => {
       eventSourceRef.current?.close();
       // Fallback: try fetching report directly (stream may have dropped after completion)
-      try {
-        const t = await user?.getIdToken();
-        const report = await fetchAnalysisReport(documentId!, t);
-        if (report?.report) {
-          setAnalysisReport(report.report);
-          setAnalysisProgress(100);
-          setAnalysisMessage('Analysis completed.');
-          return;
-        }
-      } catch (e) {
-        // Report not ready yet
-      }
-      // Only set error if we still don't have a report
-      setAnalysisReport((current) => {
-        if (!current) {
+      user?.getIdToken().then((t) => {
+        fetchAnalysisReport(documentId!, t).then((res) => {
+          if (res?.report) {
+            setAnalysisReport(res.report);
+            setAnalysisProgress(100);
+            setAnalysisMessage('Analysis completed.');
+          } else {
+            setError('Failed to connect to analysis stream or stream ended unexpectedly.');
+          }
+        }).catch(() => {
           setError('Failed to connect to analysis stream or stream ended unexpectedly.');
-        }
-        return current;
+        });
+      }).catch(() => {
+        setError('Failed to connect to analysis stream or stream ended unexpectedly.');
       });
     };
 
