@@ -142,6 +142,11 @@ class FirestoreService:
             async for doc in query.stream():
                 doc_dict = doc.to_dict()
                 doc_dict["id"] = doc.id
+                # Convert Firestore Timestamps to ISO strings for proper serialization
+                for key in ("created_at", "updated_at"):
+                    val = doc_dict.get(key)
+                    if val and hasattr(val, 'isoformat'):
+                        doc_dict[key] = val.isoformat()
                 all_docs.append(doc_dict)
             
             if status:
