@@ -98,7 +98,14 @@ class FirestoreService:
             doc_ref = self.documents_collection.document(document_id)
             doc = await doc_ref.get()
             if doc.exists:
-                return doc.to_dict()
+                doc_dict = doc.to_dict()
+                doc_dict["id"] = doc.id
+                # Convert Firestore Timestamps to ISO strings
+                for key in ("created_at", "updated_at"):
+                    val = doc_dict.get(key)
+                    if val and hasattr(val, 'isoformat'):
+                        doc_dict[key] = val.isoformat()
+                return doc_dict
             return None
         except Exception as e:
             logger.error(f"Failed to get document entry {document_id} from Firestore: {e}")
@@ -180,7 +187,13 @@ class FirestoreService:
             doc_ref = self.reports_collection.document(document_id)
             doc = await doc_ref.get()
             if doc.exists:
-                return doc.to_dict()
+                doc_dict = doc.to_dict()
+                # Convert any Firestore Timestamps to ISO strings
+                for key in ("generated_at", "created_at", "updated_at"):
+                    val = doc_dict.get(key)
+                    if val and hasattr(val, 'isoformat'):
+                        doc_dict[key] = val.isoformat()
+                return doc_dict
             return None
         except Exception as e:
             logger.error(f"Failed to get analysis report for {document_id}: {e}")
@@ -191,16 +204,18 @@ class FirestoreService:
             return await self.mock.get_document_events_since(document_id, since_timestamp)
         try:
             events_ref = self.documents_collection.document(document_id).collection("events")
-            query = events_ref.order_by("timestamp")
-            if since_timestamp:
-                query = query.where(filter=FieldFilter("timestamp", ">", since_timestamp))
             docs = []
-            async for doc in query.stream():
-                docs.append(doc.to_dict())
+            async for doc in events_ref.stream():
+                doc_dict = doc.to_dict()
+                docs.append(doc_dict)
+            # Sort by timestamp in memory
+            docs.sort(key=lambda x: x.get("timestamp", ""))
+            if since_timestamp:
+                docs = [d for d in docs if d.get("timestamp", "") > since_timestamp]
             return docs
         except Exception as e:
             logger.error(f"Failed to get events for document {document_id}: {e}")
-            raise LandGuardException(f"Failed to retrieve document events: {e}")
+            return []  # Return empty list instead of crashing the SSE stream
 
     async def add_document_event(self, document_id: str, event_data: Dict[str, Any]):
         if self.is_mock:
