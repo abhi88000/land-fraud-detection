@@ -1,5 +1,6 @@
 from google.cloud.firestore_v1 import AsyncClient
 from google.cloud.firestore_v1.base_query import FieldFilter
+from google.cloud.firestore_v1 import query as firestore_query
 from app.core.config import settings
 from app.core.errors import LandGuardException, DocumentNotFoundException
 from app.models.document import DocumentStatus, Document
@@ -134,14 +135,20 @@ class FirestoreService:
         if self.is_mock:
             return await self.mock.list_documents_for_user(user_id, page, page_size, status)
         try:
-            query = self.documents_collection.where(filter=FieldFilter("user_id", "==", user_id)).order_by("created_at", direction=AsyncClient.DESCENDING)
-            if status:
-                query = query.where(filter=FieldFilter("status", "==", status.value))
+            query = self.documents_collection.where(filter=FieldFilter("user_id", "==", user_id))
             
             # Get all matching docs for count and pagination
             all_docs = []
             async for doc in query.stream():
-                all_docs.append(doc.to_dict())
+                doc_dict = doc.to_dict()
+                doc_dict["id"] = doc.id
+                all_docs.append(doc_dict)
+            
+            if status:
+                all_docs = [d for d in all_docs if d.get("status") == status.value]
+
+            # Sort by created_at descending in memory
+            all_docs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
 
             total_count = len(all_docs)
             offset = (page - 1) * page_size
