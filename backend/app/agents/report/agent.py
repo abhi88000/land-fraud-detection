@@ -90,7 +90,7 @@ class ReportGeneratorAgent(BaseAgent[ReportInput, AnalysisReport]):
         has_seller = any(p.role.lower() == "seller" for p in extracted_data.party_names)
 
         checklist.append(VerificationChecklistItem(item="Primary parties (Buyer/Seller) identified", is_checked=has_buyer and has_seller))
-        checklist.append(VerificationChecklistItem(item="Registration number present (if applicable)", is_checked=(extracted_data.registration_info and extracted_data.registration_info.registration_number is not None)))
+        checklist.append(VerificationChecklistItem(item="Registration number present (if applicable)", is_checked=bool(extracted_data.registration_info and extracted_data.registration_info.registration_number is not None)))
         
         # Add items based on findings
         for finding in legal_findings:

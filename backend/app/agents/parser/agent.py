@@ -111,7 +111,7 @@ class DocumentParserAgent(BaseAgent[str, ExtractedData]):
                     city=prop.get("city"),
                     district=prop.get("district"),
                     state=prop.get("state"),
-                    country=prop.get("country", "India"),
+                    country=prop.get("country") or "India",
                 )
 
             reg = parsed_json.get("registration_info")
