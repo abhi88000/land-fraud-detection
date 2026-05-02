@@ -111,3 +111,27 @@ async def get_document_details(
 
     document = Document(**document_data)
     return DocumentDetailResponse(document=document)
+
+
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Deletes a document and its associated data."""
+    document_data = await firestore.get_document_entry(document_id)
+
+    if not document_data:
+        raise DocumentNotFoundException(document_id)
+
+    if document_data.get("user_id") != current_user.uid:
+        raise UnauthorizedDocumentAccess(document_id)
+
+    # Delete from GCS
+    gcs_path = document_data.get("gcs_path", "")
+    if gcs_path:
+        await gcs.delete_file(gcs_path)
+
+    # Delete from Firestore
+    await firestore.delete_document_entry(document_id)
+    return None

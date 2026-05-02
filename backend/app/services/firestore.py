@@ -221,4 +221,22 @@ class FirestoreService:
         except Exception as e:
             logger.error(f"Failed to add event for document {document_id}: {e}")
 
+    async def delete_document_entry(self, document_id: str):
+        if self.is_mock:
+            self.mock.documents.pop(document_id, None)
+            self.mock.reports.pop(document_id, None)
+            self.mock.events.pop(document_id, None)
+            return
+        try:
+            # Delete events subcollection
+            events_ref = self.documents_collection.document(document_id).collection("events")
+            async for doc in events_ref.stream():
+                await doc.reference.delete()
+            # Delete document entry
+            await self.documents_collection.document(document_id).delete()
+            # Delete analysis report if exists
+            await self.reports_collection.document(document_id).delete()
+        except Exception as e:
+            logger.error(f"Failed to delete document {document_id}: {e}")
+
 firestore = FirestoreService()

@@ -70,3 +70,17 @@ export async function fetchAnalysisReport(id: string, token?: string): Promise<{
   const result = await response.json();
   return { report: result.report };
 }
+
+export async function deleteDocument(id: string, token?: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const response = await fetch(`${API_V1}/documents/${id}`, {
+    method: 'DELETE',
+    headers,
+  });
+  if (!response.ok) {
+    throw new Error('Failed to delete document');
+  }
+}

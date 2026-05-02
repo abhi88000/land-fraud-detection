@@ -20,7 +20,16 @@ Check for these fraud patterns:
 5. FAKE_DOCUMENTS - Signs of document tampering or fabrication
 6. UNKNOWN - Any other suspicious patterns
 
-Also use your knowledge of real land fraud cases in India, especially in the district/state mentioned.
+Also check for:
+- Adivasi/tribal land (Schedule V/VI areas) which CANNOT be transferred to non-tribals
+- Government/panchayat land being illegally sold
+- Ceiling surplus land that was redistributed
+- Land marked as "locked" in revenue records
+- Benami transactions (property held in someone else's name)
+- Recent fraud cases or scams in the mentioned district/state
+- Revenue court orders or stay orders on the property
+
+Use Google Search to find recent land fraud news, government notifications, and restrictions specific to the mentioned district and state.
 
 Return a JSON array:
 [
@@ -61,8 +70,10 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
             prompt_text = (
                 f"Analyze this extracted land document data for potential fraud:\n\n"
                 f"{json.dumps(extracted_data.dict(), indent=2, default=str)}\n\n"
-                f"Also search for recent land fraud cases reported in {district}, {state}, India "
-                f"and check if this document shows similar patterns."
+                f"Search for recent land fraud cases, adivasi/tribal land restrictions, "
+                f"locked land records, and government notifications in {district}, {state}, India. "
+                f"Check if this document shows similar fraud patterns or violates local restrictions.\n\n"
+                f"IMPORTANT: Return ONLY the JSON array as specified in system instructions."
             )
 
             response = await self.client.aio.models.generate_content(
@@ -76,11 +87,16 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
                 config=types.GenerateContentConfig(
                     system_instruction=FRAUD_SYSTEM_PROMPT,
                     temperature=0.2,
-                    response_mime_type="application/json",
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
                 ),
             )
 
             response_text = response.text.strip()
+            # Extract JSON from response (may be wrapped in ```json ... ```)
+            if "```json" in response_text:
+                response_text = response_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in response_text:
+                response_text = response_text.split("```")[1].split("```")[0].strip()
             parsed_findings = json.loads(response_text)
             if isinstance(parsed_findings, dict):
                 parsed_findings = parsed_findings.get("findings", [parsed_findings])

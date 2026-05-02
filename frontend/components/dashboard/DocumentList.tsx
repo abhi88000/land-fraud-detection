@@ -12,10 +12,14 @@ import {
   Chip,
   IconButton,
   Typography,
+  Tooltip,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { Document, DocumentStatus } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import { deleteDocument } from '@/lib/api';
+import { useAuth } from '@/lib/firebase/auth';
 
 interface DocumentListProps {
   documents: Document[];
@@ -37,6 +41,18 @@ const getStatusColor = (status: DocumentStatus) => {
 
 const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete }) => {
   const router = useRouter();
+  const { user } = useAuth();
+
+  const handleDelete = async (docId: string) => {
+    if (!confirm('Delete this document?')) return;
+    try {
+      const token = await user?.getIdToken();
+      await deleteDocument(docId, token);
+      onDelete?.();
+    } catch (err) {
+      console.error('Failed to delete:', err);
+    }
+  };
 
   if (documents.length === 0) {
     return (
@@ -78,12 +94,22 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete }) => {
                 {new Date(doc.created_at).toLocaleDateString()}
               </TableCell>
               <TableCell align="center">
-                <IconButton
-                  color="primary"
-                  onClick={() => router.push(`/documents/${doc.id}`)}
-                >
-                  <VisibilityIcon />
-                </IconButton>
+                <Tooltip title="View">
+                  <IconButton
+                    color="primary"
+                    onClick={() => router.push(`/documents/${doc.id}`)}
+                  >
+                    <VisibilityIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete">
+                  <IconButton
+                    color="error"
+                    onClick={() => handleDelete(doc.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
               </TableCell>
             </TableRow>
           ))}
