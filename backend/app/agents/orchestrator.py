@@ -32,6 +32,7 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
         """
         Initiates the document analysis workflow.
         Updates document status and triggers sub-agents.
+        Uses cached OCR data if available to skip re-parsing.
         """
         await self._update_progress(document_id, "Analysis workflow started.", 5, "analysis_started")
         await firestore.update_document_status(document_id, DocumentStatus.IN_PROGRESS)
@@ -43,8 +44,23 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
                 raise ValueError(f"Document {document_id} not found in Firestore.")
             document = Document(**document_entry)
 
-            # 2. Document Parsing
-            extracted_data = await self.parser_agent.run(document.gcs_path, document_id)
+            # 2. Document Parsing (with OCR cache)
+            cached_data = document_entry.get("cached_extracted_data")
+            if cached_data:
+                # Use cached OCR result — skip expensive Gemini call
+                extracted_data = ExtractedData(**cached_data)
+                await self._update_progress(document_id, "Using cached document data (previously parsed).", 25, "document_parsed_cached")
+            else:
+                extracted_data = await self.parser_agent.run(document.gcs_path, document_id)
+                # Cache the extracted data for future re-analysis
+                try:
+                    await firestore.update_document_entry(document_id, {
+                        "cached_extracted_data": json.loads(extracted_data.model_dump_json())
+                    })
+                except Exception as cache_err:
+                    # Non-fatal: just log if caching fails
+                    import logging
+                    logging.getLogger(__name__).warning(f"Failed to cache extracted data for {document_id}: {cache_err}")
 
             # Override state/district from user input if available
             if state_override and extracted_data.property_details:

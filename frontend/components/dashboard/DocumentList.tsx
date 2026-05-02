@@ -21,6 +21,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import DescriptionIcon from '@mui/icons-material/Description';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Document, DocumentStatus } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { deleteDocument, analyzeDocuments } from '@/lib/api';
@@ -47,16 +48,7 @@ const getStatusConfig = (status: DocumentStatus): { label: string; color: 'succe
   }
 };
 
-const formatDate = (dateStr: string): string => {
-  if (!dateStr) return '—';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '—';
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return '—';
-  }
-};
+
 
 const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete, onAnalysisStarted }) => {
   const router = useRouter();
@@ -78,18 +70,19 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete, onAnal
     }
   };
 
-  const handleAnalyze = async () => {
-    if (selected.length === 0) return;
+  const handleAnalyze = async (docIds?: string[]) => {
+    const idsToAnalyze = docIds || selected;
+    if (idsToAnalyze.length === 0) return;
     setAnalyzing(true);
     try {
       const token = await user?.getIdToken();
-      await analyzeDocuments(selected, token);
+      await analyzeDocuments(idsToAnalyze, token);
       onAnalysisStarted?.();
-      // Navigate to batch view (works for single doc too)
-      if (selected.length === 1) {
-        router.push(`/documents/${selected[0]}`);
+      // Navigate to batch view
+      if (idsToAnalyze.length === 1) {
+        router.push(`/documents/${idsToAnalyze[0]}`);
       } else {
-        router.push(`/documents/batch?ids=${selected.join(',')}`);
+        router.push(`/documents/batch?ids=${idsToAnalyze.join(',')}`);
       }
       setSelected([]);
     } catch (err: any) {
@@ -134,66 +127,52 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete, onAnal
 
   return (
     <Box>
-      {/* Action bar when items selected */}
-      {selected.length > 0 && (
-        <Paper
-          elevation={0}
-          sx={{
-            display: 'flex', alignItems: 'center', gap: 2,
-            mb: 2, px: 3, py: 1.5,
-            bgcolor: '#e8f0fe', borderRadius: 2,
-            border: '1px solid #d2e3fc',
-          }}
-        >
-          <Typography variant="body2" fontWeight={500} sx={{ color: '#1967d2' }}>
-            {selected.length} selected
-          </Typography>
-          {/* Show Analyze button only if there are unanalyzed docs in selection */}
-          {selected.some(id => {
-            const doc = documents.find(d => d.id === id);
-            return doc && doc.status !== DocumentStatus.COMPLETED;
-          }) && (
+      {/* Analyze All Documents button - prominent collective action */}
+      {documents.length > 0 && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+          {documents.some(d => d.status !== DocumentStatus.COMPLETED) && (
             <Button
               variant="contained"
-              size="small"
-              startIcon={<PlayArrowIcon />}
-              onClick={handleAnalyze}
+              startIcon={<AutoAwesomeIcon />}
+              onClick={() => {
+                const unanalyzed = documents.filter(d => d.status !== DocumentStatus.COMPLETED && d.status !== DocumentStatus.IN_PROGRESS).map(d => d.id);
+                if (unanalyzed.length === 0) return;
+                handleAnalyze(unanalyzed);
+              }}
               disabled={analyzing}
               disableElevation
               sx={{
-                borderRadius: '16px', textTransform: 'none', fontWeight: 500,
-                bgcolor: '#1a73e8', '&:hover': { bgcolor: '#1765cc' },
+                borderRadius: '100px', textTransform: 'none', fontWeight: 600,
+                bgcolor: '#202124', px: 3, py: 1,
+                '&:hover': { bgcolor: '#303134' },
               }}
             >
-              {analyzing ? 'Starting...' : 'Analyze Selected'}
+              {analyzing ? 'Starting...' : 'Analyze All Documents'}
             </Button>
           )}
-          {/* Show View Reports button if multiple analyzed docs selected */}
-          {selected.filter(id => {
-            const doc = documents.find(d => d.id === id);
-            return doc && doc.status === DocumentStatus.COMPLETED;
-          }).length >= 2 && (
+          {documents.filter(d => d.status === DocumentStatus.COMPLETED).length >= 2 && (
             <Button
               variant="outlined"
-              size="small"
               startIcon={<VisibilityIcon />}
               onClick={() => {
-                const analyzedIds = selected.filter(id => {
-                  const doc = documents.find(d => d.id === id);
-                  return doc && doc.status === DocumentStatus.COMPLETED;
-                });
+                const analyzedIds = documents.filter(d => d.status === DocumentStatus.COMPLETED).map(d => d.id);
                 router.push(`/documents/batch?ids=${analyzedIds.join(',')}`);
               }}
-              disableElevation
               sx={{
-                borderRadius: '16px', textTransform: 'none', fontWeight: 500,
-                borderColor: '#1a73e8', color: '#1a73e8',
+                borderRadius: '100px', textTransform: 'none', fontWeight: 600,
+                borderColor: '#dadce0', color: '#1a73e8', px: 3, py: 1,
+                '&:hover': { borderColor: '#1a73e8', bgcolor: '#f0f7ff' },
               }}
             >
               View Combined Report
             </Button>
           )}
-        </Paper>
+          {selected.length > 0 && (
+            <Typography variant="body2" sx={{ color: '#5f6368' }}>
+              {selected.length} selected
+            </Typography>
+          )}
+        </Box>
       )}
 
       <TableContainer
@@ -220,9 +199,6 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete, onAnal
               </TableCell>
               <TableCell sx={{ bgcolor: '#f8f9fa', borderBottom: '2px solid #e0e0e0', fontWeight: 500, color: '#5f6368', fontSize: '0.8rem' }}>
                 Status
-              </TableCell>
-              <TableCell sx={{ bgcolor: '#f8f9fa', borderBottom: '2px solid #e0e0e0', fontWeight: 500, color: '#5f6368', fontSize: '0.8rem' }}>
-                Uploaded
               </TableCell>
               <TableCell sx={{ bgcolor: '#f8f9fa', borderBottom: '2px solid #e0e0e0', fontWeight: 500, color: '#5f6368', fontSize: '0.8rem' }} align="right">
                 Actions
@@ -269,11 +245,6 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete, onAnal
                       size="small"
                       sx={{ fontWeight: 500, fontSize: '0.75rem' }}
                     />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ color: '#5f6368' }}>
-                      {formatDate(doc.created_at)}
-                    </Typography>
                   </TableCell>
                   <TableCell align="right">
                     {doc.status === DocumentStatus.COMPLETED && (

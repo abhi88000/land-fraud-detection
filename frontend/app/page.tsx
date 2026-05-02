@@ -1,80 +1,127 @@
 "use client";
 
 import * as React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, Typography, Box } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth';
-import ShieldIcon from '@mui/icons-material/Shield';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import BoltIcon from '@mui/icons-material/Bolt';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
-import DocumentScannerIcon from '@mui/icons-material/DocumentScanner';
-import PsychologyIcon from '@mui/icons-material/Psychology';
-import SecurityIcon from '@mui/icons-material/Security';
-import GavelIcon from '@mui/icons-material/Gavel';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
-// Soft floating gradient blobs (light theme)
-function FloatingOrbs() {
+// Particle system - scattered confetti like Google Antigravity
+function ParticleField() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    const dpr = window.devicePixelRatio || 1;
+
+    const resize = () => {
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = window.innerWidth + 'px';
+      canvas.style.height = window.innerHeight + 'px';
+      ctx.scale(dpr, dpr);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const colors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#7B61FF', '#FF6D93', '#00BCD4'];
+
+    interface Particle {
+      x: number; y: number; size: number; color: string;
+      vx: number; vy: number; rotation: number; rotationSpeed: number;
+      shape: 'dot' | 'dash' | 'circle';
+      opacity: number;
+    }
+
+    const particles: Particle[] = [];
+    const count = 80;
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+      const dist = 120 + Math.random() * Math.min(window.innerWidth, window.innerHeight) * 0.4;
+      particles.push({
+        x: cx + Math.cos(angle) * dist,
+        y: cy + Math.sin(angle) * dist,
+        size: 2 + Math.random() * 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vx: Math.cos(angle) * (0.1 + Math.random() * 0.2),
+        vy: Math.sin(angle) * (0.1 + Math.random() * 0.2),
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.02,
+        shape: (['dot', 'dash', 'circle'] as const)[Math.floor(Math.random() * 3)],
+        opacity: 0.4 + Math.random() * 0.5,
+      });
+    }
+
+    const draw = () => {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.rotationSpeed;
+
+        // Wrap around
+        if (p.x < -20) p.x = window.innerWidth + 20;
+        if (p.x > window.innerWidth + 20) p.x = -20;
+        if (p.y < -20) p.y = window.innerHeight + 20;
+        if (p.y > window.innerHeight + 20) p.y = -20;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.globalAlpha = p.opacity;
+
+        if (p.shape === 'dot') {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.fill();
+        } else if (p.shape === 'dash') {
+          ctx.beginPath();
+          ctx.moveTo(-p.size * 2, 0);
+          ctx.lineTo(p.size * 2, 0);
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.size * 0.7;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      animId = requestAnimationFrame(draw);
+    };
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
+
   return (
-    <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-      {[...Array(5)].map((_, i) => (
-        <Box
-          key={i}
-          sx={{
-            position: 'absolute',
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${
-              ['rgba(99,102,241,0.08)', 'rgba(59,130,246,0.06)', 'rgba(16,185,129,0.06)',
-               'rgba(245,158,11,0.05)', 'rgba(139,92,246,0.07)'][i]
-            }, transparent 70%)`,
-            width: [350, 400, 300, 280, 420][i],
-            height: [350, 400, 300, 280, 420][i],
-            left: `${[5, 65, 80, 15, 50][i]}%`,
-            top: `${[10, 50, 20, 70, 80][i]}%`,
-            animation: `float ${[7, 9, 6, 8, 10][i]}s ease-in-out infinite`,
-            animationDelay: `${i * 0.7}s`,
-            filter: 'blur(60px)',
-          }}
-        />
-      ))}
-    </Box>
+    <canvas
+      ref={canvasRef}
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+    />
   );
 }
 
-// Animated counter
-function AnimatedCounter({ end, suffix = '', prefix = '', duration = 2000 }: { end: number; suffix?: string; prefix?: string; duration?: number }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const counted = useRef(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !counted.current) {
-          counted.current = true;
-          const start = Date.now();
-          const animate = () => {
-            const elapsed = Date.now() - start;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setCount(Math.floor(eased * end));
-            if (progress < 1) requestAnimationFrame(animate);
-          };
-          animate();
-        }
-      },
-      { threshold: 0.5 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [end, duration]);
-
-  return <span ref={ref}>{prefix}{count}{suffix}</span>;
-}
-
-// Scroll-reveal wrapper
+// Scroll-reveal
 function RevealOnScroll({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -93,8 +140,8 @@ function RevealOnScroll({ children, delay = 0 }: { children: React.ReactNode; de
       ref={ref}
       sx={{
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(40px)',
-        transition: `all 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
+        transform: visible ? 'translateY(0)' : 'translateY(30px)',
+        transition: `all 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
       }}
     >
       {children}
@@ -116,108 +163,84 @@ export default function HomePage() {
 
   const showDashboard = !loading && user;
 
-  const agents = [
-    { icon: <DocumentScannerIcon />, name: 'Parser Agent', desc: 'Extracts every detail from your document automatically', color: '#3b82f6' },
-    { icon: <GavelIcon />, name: 'Legal Agent', desc: 'Validates Indian land law compliance in real-time', color: '#10b981' },
-    { icon: <SecurityIcon />, name: 'Fraud Agent', desc: 'Detects forgery, red flags & known scam patterns', color: '#ef4444' },
-    { icon: <TrendingUpIcon />, name: 'Report Agent', desc: 'Generates risk score & verification checklist', color: '#f59e0b' },
-  ];
-
   return (
     <Box sx={{ bgcolor: '#ffffff', minHeight: '100vh', overflow: 'hidden' }}>
       {/* ═══════════════ HERO ═══════════════ */}
       <Box
         sx={{
           position: 'relative',
-          minHeight: { xs: '90vh', md: '100vh' },
+          minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           px: 3,
-          background: 'linear-gradient(160deg, #1e1b4b 0%, #312e81 25%, #4338ca 50%, #6366f1 75%, #818cf8 100%)',
-          backgroundSize: '300% 300%',
-          animation: 'gradientShift 12s ease infinite',
+          bgcolor: '#fafafa',
         }}
       >
-        {/* Subtle grid overlay */}
-        <Box sx={{
-          position: 'absolute', inset: 0,
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
-          `,
-          backgroundSize: '50px 50px',
-        }} />
-
-        {/* Glowing orb behind content */}
-        <Box sx={{
-          position: 'absolute',
-          width: '600px', height: '600px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(129,140,248,0.2) 0%, transparent 60%)',
-          filter: 'blur(80px)',
-          animation: 'float 8s ease-in-out infinite',
-        }} />
+        <ParticleField />
 
         {/* Hero content */}
-        <Box sx={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 800 }}>
-          {/* AI Badge */}
+        <Box sx={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 750 }}>
+          {/* Brand badge */}
           <Box
             sx={{
               display: 'inline-flex', alignItems: 'center', gap: 1,
-              px: 2.5, py: 0.8, mb: 4,
-              borderRadius: '100px',
-              border: '1px solid rgba(255,255,255,0.2)',
-              background: 'rgba(255,255,255,0.08)',
-              backdropFilter: 'blur(12px)',
+              mb: 4,
               opacity: mounted ? 1 : 0,
-              transform: mounted ? 'translateY(0)' : 'translateY(20px)',
-              transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s',
+              transform: mounted ? 'translateY(0)' : 'translateY(15px)',
+              transition: 'all 0.6s ease 0.2s',
             }}
           >
-            <AutoAwesomeIcon sx={{ fontSize: 16, color: '#fbbf24' }} />
-            <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
-              Powered by Gemini 2.5 Flash &middot; Multi-Agent AI
+            <Box sx={{
+              width: 28, height: 28, borderRadius: '8px',
+              background: 'linear-gradient(135deg, #4285F4, #7B61FF)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', fontSize: '14px', fontWeight: 700,
+            }}>
+              L
+            </Box>
+            <Typography sx={{ fontSize: '0.9rem', color: '#5f6368', fontWeight: 500 }}>
+              LandGuard
             </Typography>
           </Box>
 
-          {/* Main title */}
+          {/* Main title - big bold black */}
           <Typography
             variant="h1"
             sx={{
-              fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4.2rem' },
-              fontWeight: 800,
-              lineHeight: 1.1,
+              fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
+              fontWeight: 700,
+              lineHeight: 1.15,
               mb: 3,
-              color: 'white',
-              textShadow: '0 2px 40px rgba(0,0,0,0.3)',
+              color: '#202124',
+              letterSpacing: '-1px',
               opacity: mounted ? 1 : 0,
-              transform: mounted ? 'translateY(0)' : 'translateY(30px)',
-              transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s',
+              transform: mounted ? 'translateY(0)' : 'translateY(20px)',
+              transition: 'all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
             }}
           >
-            Detect Land Fraud
+            AI-powered land fraud
             <br />
-            <Box component="span" sx={{ color: 'rgba(255,255,255,0.7)' }}>Before You Pay</Box>
+            detection for India
           </Typography>
 
           {/* Subtitle */}
           <Typography
             sx={{
-              fontSize: { xs: '1rem', md: '1.2rem' },
-              color: 'rgba(255,255,255,0.7)',
-              maxWidth: 560,
+              fontSize: { xs: '1rem', md: '1.15rem' },
+              color: '#5f6368',
+              maxWidth: 520,
               mx: 'auto',
               mb: 5,
               lineHeight: 1.7,
               opacity: mounted ? 1 : 0,
-              transform: mounted ? 'translateY(0)' : 'translateY(20px)',
-              transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s',
+              transform: mounted ? 'translateY(0)' : 'translateY(15px)',
+              transition: 'all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s',
             }}
           >
-            Upload your land documents. Four AI agents analyze legal compliance,
-            detect forgery, and give you a clear risk score — in seconds.
+            Upload land documents. Four AI agents analyze legal compliance,
+            detect forgery, and generate a clear risk report — in seconds.
           </Typography>
 
           {/* CTA Buttons */}
@@ -225,8 +248,8 @@ export default function HomePage() {
             sx={{
               display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap',
               opacity: mounted ? 1 : 0,
-              transform: mounted ? 'translateY(0)' : 'translateY(20px)',
-              transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s',
+              transform: mounted ? 'translateY(0)' : 'translateY(15px)',
+              transition: 'all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.7s',
             }}
           >
             {showDashboard ? (
@@ -234,23 +257,23 @@ export default function HomePage() {
                 size="large"
                 onClick={() => router.push('/dashboard')}
                 sx={{
-                  px: 5, py: 1.8,
-                  background: 'white',
-                  color: '#4338ca',
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  borderRadius: '14px',
+                  px: 4.5, py: 1.6,
+                  background: '#202124',
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  borderRadius: '100px',
                   textTransform: 'none',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  transition: 'all 0.2s ease',
                   '&:hover': {
-                    background: '#f8fafc',
-                    transform: 'translateY(-3px) scale(1.02)',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+                    background: '#303134',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                    transform: 'translateY(-1px)',
                   },
                 }}
               >
-                <BoltIcon sx={{ mr: 1 }} /> Open Dashboard
+                Open Dashboard
               </Button>
             ) : !loading && (
               <>
@@ -258,42 +281,39 @@ export default function HomePage() {
                   size="large"
                   onClick={() => router.push('/login')}
                   sx={{
-                    px: 5, py: 1.8,
-                    background: 'white',
-                    color: '#4338ca',
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    borderRadius: '14px',
+                    px: 4.5, py: 1.6,
+                    background: '#202124',
+                    color: 'white',
+                    fontWeight: 600,
+                    fontSize: '0.95rem',
+                    borderRadius: '100px',
                     textTransform: 'none',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                    transition: 'all 0.3s ease',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    transition: 'all 0.2s ease',
                     '&:hover': {
-                      background: '#f8fafc',
-                      transform: 'translateY(-3px) scale(1.02)',
-                      boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+                      background: '#303134',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                      transform: 'translateY(-1px)',
                     },
                   }}
                 >
-                  <BoltIcon sx={{ mr: 1 }} /> Get Started Free
+                  Get Started Free
                 </Button>
                 <Button
                   size="large"
                   onClick={handleGuestLogin}
                   sx={{
-                    px: 4, py: 1.8,
-                    border: '1.5px solid rgba(255,255,255,0.3)',
-                    color: 'white',
+                    px: 4, py: 1.6,
+                    background: '#f1f3f4',
+                    color: '#202124',
                     fontWeight: 600,
-                    fontSize: '1rem',
-                    borderRadius: '14px',
+                    fontSize: '0.95rem',
+                    borderRadius: '100px',
                     textTransform: 'none',
-                    backdropFilter: 'blur(10px)',
-                    background: 'rgba(255,255,255,0.05)',
-                    transition: 'all 0.3s ease',
+                    transition: 'all 0.2s ease',
                     '&:hover': {
-                      borderColor: 'rgba(255,255,255,0.5)',
-                      background: 'rgba(255,255,255,0.12)',
-                      transform: 'translateY(-2px)',
+                      background: '#e8eaed',
+                      transform: 'translateY(-1px)',
                     },
                   }}
                 >
@@ -302,107 +322,77 @@ export default function HomePage() {
               </>
             )}
           </Box>
-
-          {/* Trust indicators */}
-          <Box sx={{
-            mt: 6, display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap',
-            opacity: mounted ? 1 : 0,
-            transition: 'opacity 1s ease 1.2s',
-          }}>
-            {['Multi-Agent AI', '6+ Languages', 'Real-time Analysis'].map((text) => (
-              <Box key={text} sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#34d399' }} />
-                <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
-                  {text}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
         </Box>
+      </Box>
 
-        {/* Scroll indicator */}
-        <Box sx={{
-          position: 'absolute', bottom: 32, left: '50%',
-          transform: 'translateX(-50%)',
-          animation: 'float 2s ease-in-out infinite', opacity: 0.5,
-        }}>
-          <Box sx={{
-            width: 24, height: 40, borderRadius: 12,
-            border: '2px solid rgba(255,255,255,0.3)',
-            display: 'flex', justifyContent: 'center', pt: 1,
-          }}>
-            <Box sx={{
-              width: 3, height: 8, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.6)',
-              animation: 'fadeSlideDown 1.5s ease-in-out infinite',
-            }} />
+      {/* ═══════════════ HOW IT WORKS ═══════════════ */}
+      <Box sx={{ py: { xs: 10, md: 14 }, px: 3, bgcolor: 'white' }}>
+        <Box sx={{ maxWidth: 900, mx: 'auto' }}>
+          <RevealOnScroll>
+            <Typography sx={{ fontSize: { xs: '1.8rem', md: '2.5rem' }, fontWeight: 700, color: '#202124', textAlign: 'center', mb: 2 }}>
+              How it works
+            </Typography>
+            <Typography sx={{ color: '#5f6368', textAlign: 'center', mb: 8, fontSize: '1.05rem' }}>
+              Four specialized AI agents work in parallel to analyze your documents
+            </Typography>
+          </RevealOnScroll>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 4 }}>
+            {[
+              { step: '01', title: 'Upload', desc: 'Drop your land documents — sale deeds, ECs, title deeds', color: '#4285F4' },
+              { step: '02', title: 'Parse', desc: 'AI reads the document in 6+ Indian languages', color: '#34A853' },
+              { step: '03', title: 'Analyze', desc: 'Legal + Fraud agents check compliance & red flags', color: '#FBBC05' },
+              { step: '04', title: 'Report', desc: 'Get risk score, findings & verification checklist', color: '#EA4335' },
+            ].map((item, idx) => (
+              <RevealOnScroll key={idx} delay={idx * 100}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: item.color, mb: 1, letterSpacing: '1px' }}>
+                    STEP {item.step}
+                  </Typography>
+                  <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: '#202124', mb: 1 }}>
+                    {item.title}
+                  </Typography>
+                  <Typography sx={{ color: '#5f6368', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                    {item.desc}
+                  </Typography>
+                </Box>
+              </RevealOnScroll>
+            ))}
           </Box>
         </Box>
       </Box>
 
-      {/* ═══════════════ AI AGENTS ═══════════════ */}
-      <Box sx={{ py: { xs: 10, md: 14 }, px: 3, position: 'relative', bgcolor: '#fafbff' }}>
-        <FloatingOrbs />
-        <Box sx={{ maxWidth: 1100, mx: 'auto', position: 'relative', zIndex: 1 }}>
+      {/* ═══════════════ FEATURES ═══════════════ */}
+      <Box sx={{ py: { xs: 10, md: 14 }, px: 3, bgcolor: '#fafafa' }}>
+        <Box sx={{ maxWidth: 900, mx: 'auto' }}>
           <RevealOnScroll>
-            <Box sx={{ textAlign: 'center', mb: 8 }}>
-              <Box sx={{
-                display: 'inline-flex', alignItems: 'center', gap: 1, px: 2, py: 0.5,
-                borderRadius: '100px', border: '1px solid rgba(16,185,129,0.25)',
-                background: 'rgba(16,185,129,0.05)', mb: 3,
-              }}>
-                <PsychologyIcon sx={{ fontSize: 14, color: '#10b981' }} />
-                <Typography sx={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600, letterSpacing: '0.5px' }}>
-                  HOW IT WORKS
-                </Typography>
-              </Box>
-              <Typography sx={{ fontSize: { xs: '2rem', md: '2.8rem' }, fontWeight: 800, color: '#1e293b', mb: 2 }}>
-                Four AI Agents.{' '}
-                <Box component="span" sx={{
-                  background: 'linear-gradient(135deg, #4338ca, #6366f1)',
-                  backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                }}>
-                  One Verdict.
-                </Box>
-              </Typography>
-              <Typography sx={{ color: '#64748b', maxWidth: 500, mx: 'auto', fontSize: '1.05rem' }}>
-                Each agent specializes in one aspect — working in parallel for comprehensive analysis.
-              </Typography>
-            </Box>
+            <Typography sx={{ fontSize: { xs: '1.8rem', md: '2.5rem' }, fontWeight: 700, color: '#202124', textAlign: 'center', mb: 8 }}>
+              Built for Indian land documents
+            </Typography>
           </RevealOnScroll>
 
-          {/* Agent cards */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 3 }}>
-            {agents.map((agent, idx) => (
-              <RevealOnScroll key={idx} delay={idx * 150}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+            {[
+              { title: 'Multi-language OCR', desc: 'Hindi, English, Tamil, Kannada, Telugu, Marathi — reads all natively', color: '#4285F4' },
+              { title: 'Legal compliance', desc: 'Transfer of Property Act, Registration Act, stamp duty & state laws', color: '#34A853' },
+              { title: 'Fraud patterns', desc: 'Detects benami, forged stamps, broken chains, encumbrance gaps', color: '#EA4335' },
+              { title: 'Collective analysis', desc: 'Analyze multiple documents together for cross-reference verification', color: '#7B61FF' },
+            ].map((feat, idx) => (
+              <RevealOnScroll key={idx} delay={idx * 80}>
                 <Box
                   sx={{
                     p: 4,
-                    borderRadius: '20px',
-                    border: '1px solid #e2e8f0',
-                    background: 'white',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                    transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                    cursor: 'default',
-                    '&:hover': {
-                      border: `1px solid ${agent.color}40`,
-                      transform: 'translateY(-8px)',
-                      boxShadow: `0 20px 40px ${agent.color}15, 0 8px 16px rgba(0,0,0,0.06)`,
-                    },
+                    borderRadius: '16px',
+                    border: '1px solid #e8eaed',
+                    bgcolor: 'white',
+                    transition: 'all 0.2s ease',
+                    '&:hover': { borderColor: feat.color, boxShadow: `0 4px 20px ${feat.color}15` },
                   }}
                 >
-                  <Box sx={{
-                    width: 52, height: 52, borderRadius: '14px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: `${agent.color}10`, mb: 3,
-                    '& svg': { fontSize: 26, color: agent.color },
-                  }}>
-                    {agent.icon}
-                  </Box>
-                  <Typography sx={{ fontWeight: 700, mb: 1, fontSize: '1rem', color: '#1e293b' }}>
-                    {agent.name}
-                  </Typography>
-                  <Typography sx={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.6 }}>
-                    {agent.desc}
+                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: feat.color, mb: 2 }} />
+                  <Typography sx={{ fontWeight: 700, color: '#202124', mb: 1 }}>{feat.title}</Typography>
+                  <Typography sx={{ color: '#5f6368', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                    {feat.desc}
                   </Typography>
                 </Box>
               </RevealOnScroll>
@@ -413,38 +403,20 @@ export default function HomePage() {
 
       {/* ═══════════════ STATS ═══════════════ */}
       <Box sx={{ py: { xs: 8, md: 12 }, px: 3, bgcolor: 'white' }}>
-        <Box sx={{ maxWidth: 900, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 700, mx: 'auto' }}>
           <RevealOnScroll>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
-                gap: 4,
-                p: { xs: 4, md: 6 },
-                borderRadius: '24px',
-                border: '1px solid #e2e8f0',
-                background: 'linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%)',
-                boxShadow: '0 4px 24px rgba(99,102,241,0.06)',
-              }}
-            >
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 4, textAlign: 'center' }}>
               {[
-                { value: 1000, prefix: '₹', suffix: '+ Cr', label: 'Lost to fraud yearly' },
-                { value: 66, prefix: '', suffix: '%', label: 'Cases are land disputes' },
-                { value: 4, prefix: '', suffix: '', label: 'AI agents in parallel' },
-                { value: 6, prefix: '', suffix: '+', label: 'Languages supported' },
+                { value: '₹1,000+ Cr', label: 'Lost to fraud yearly' },
+                { value: '66%', label: 'Court cases are land disputes' },
+                { value: '4', label: 'AI agents in parallel' },
+                { value: '6+', label: 'Languages supported' },
               ].map((stat, idx) => (
-                <Box key={idx} sx={{ textAlign: 'center' }}>
-                  <Typography sx={{
-                    fontSize: { xs: '1.8rem', md: '2.4rem' },
-                    fontWeight: 800,
-                    background: 'linear-gradient(135deg, #4338ca, #6366f1)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}>
-                    <AnimatedCounter end={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
+                <Box key={idx}>
+                  <Typography sx={{ fontSize: { xs: '1.5rem', md: '2rem' }, fontWeight: 700, color: '#202124' }}>
+                    {stat.value}
                   </Typography>
-                  <Typography sx={{ color: '#64748b', fontSize: '0.8rem', mt: 0.5, fontWeight: 500 }}>
+                  <Typography sx={{ color: '#5f6368', fontSize: '0.8rem', mt: 0.5 }}>
                     {stat.label}
                   </Typography>
                 </Box>
@@ -454,113 +426,29 @@ export default function HomePage() {
         </Box>
       </Box>
 
-      {/* ═══════════════ FEATURES ═══════════════ */}
-      <Box sx={{ py: { xs: 10, md: 14 }, px: 3, bgcolor: '#fafbff', position: 'relative' }}>
-        <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
-          <RevealOnScroll>
-            <Box sx={{ textAlign: 'center', mb: 8 }}>
-              <Typography sx={{ fontSize: { xs: '2rem', md: '2.8rem' }, fontWeight: 800, color: '#1e293b', mb: 2 }}>
-                Why{' '}
-                <Box component="span" sx={{
-                  background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
-                  backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                }}>
-                  LandGuard?
-                </Box>
-              </Typography>
-              <Typography sx={{ color: '#64748b', maxWidth: 480, mx: 'auto', fontSize: '1.05rem' }}>
-                Land fraud costs Indians over ₹1,000 crore every year. We&apos;re changing that.
-              </Typography>
-            </Box>
-          </RevealOnScroll>
-
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-            {[
-              { icon: <DocumentScannerIcon />, title: 'Smart Parsing', desc: 'Reads sale deeds, ECs, title deeds, revenue records in 6+ Indian languages', color: '#3b82f6' },
-              { icon: <GavelIcon />, title: 'Legal Compliance', desc: 'Transfer of Property Act, Registration Act, stamp duty & state-specific laws', color: '#10b981' },
-              { icon: <SecurityIcon />, title: 'Fraud Detection', desc: 'Forged stamps, mismatched names, broken chains, benami patterns & more', color: '#ef4444' },
-              { icon: <VerifiedUserIcon />, title: 'Verification Checklist', desc: 'Step-by-step actions to confirm legitimacy before you sign or pay', color: '#8b5cf6' },
-            ].map((feat, idx) => (
-              <RevealOnScroll key={idx} delay={idx * 100}>
-                <Box
-                  sx={{
-                    p: 4,
-                    borderRadius: '20px',
-                    border: '1px solid #e2e8f0',
-                    background: 'white',
-                    display: 'flex',
-                    gap: 3,
-                    alignItems: 'flex-start',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                    '&:hover': {
-                      border: `1px solid ${feat.color}30`,
-                      boxShadow: `0 8px 30px ${feat.color}12`,
-                      transform: 'translateY(-4px)',
-                    },
-                  }}
-                >
-                  <Box sx={{
-                    width: 48, height: 48, borderRadius: '14px', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: `${feat.color}10`,
-                    '& svg': { fontSize: 24, color: feat.color },
-                  }}>
-                    {feat.icon}
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontWeight: 700, mb: 0.5, color: '#1e293b' }}>{feat.title}</Typography>
-                    <Typography sx={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                      {feat.desc}
-                    </Typography>
-                  </Box>
-                </Box>
-              </RevealOnScroll>
-            ))}
-          </Box>
-        </Box>
-      </Box>
-
-      {/* ═══════════════ FINAL CTA ═══════════════ */}
-      <Box sx={{ py: { xs: 12, md: 16 }, px: 3, bgcolor: 'white', position: 'relative' }}>
-        <Box sx={{
-          position: 'absolute', inset: 0,
-          background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(99,102,241,0.04), transparent)',
-        }} />
+      {/* ═══════════════ CTA ═══════════════ */}
+      <Box sx={{ py: { xs: 10, md: 14 }, px: 3, bgcolor: '#fafafa' }}>
         <RevealOnScroll>
-          <Box sx={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-            <Box sx={{
-              width: 72, height: 72, borderRadius: '20px', mx: 'auto', mb: 3,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
-              boxShadow: '0 4px 16px rgba(99,102,241,0.1)',
-            }}>
-              <ShieldIcon sx={{ fontSize: 36, color: '#4338ca' }} />
-            </Box>
-            <Typography sx={{ fontSize: { xs: '1.8rem', md: '2.5rem' }, fontWeight: 800, color: '#1e293b', mb: 2 }}>
-              Don&apos;t risk your life savings.
+          <Box sx={{ textAlign: 'center', maxWidth: 500, mx: 'auto' }}>
+            <Typography sx={{ fontSize: { xs: '1.5rem', md: '2rem' }, fontWeight: 700, color: '#202124', mb: 2 }}>
+              Don&apos;t risk your life savings
             </Typography>
-            <Typography sx={{ color: '#64748b', mb: 5, fontSize: '1.1rem', maxWidth: 450, mx: 'auto' }}>
-              Verify before you sign. Let AI protect your biggest investment.
+            <Typography sx={{ color: '#5f6368', mb: 4, fontSize: '1rem' }}>
+              Verify land documents with AI before you sign.
             </Typography>
             {showDashboard ? (
               <Button
                 size="large"
                 onClick={() => router.push('/dashboard')}
                 sx={{
-                  px: 6, py: 2,
-                  background: 'linear-gradient(135deg, #4338ca, #6366f1)',
+                  px: 5, py: 1.6,
+                  background: '#202124',
                   color: 'white',
-                  fontWeight: 700,
-                  fontSize: '1.05rem',
-                  borderRadius: '14px',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  borderRadius: '100px',
                   textTransform: 'none',
-                  boxShadow: '0 8px 30px rgba(99,102,241,0.3)',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: '0 12px 40px rgba(99,102,241,0.4)',
-                    transform: 'translateY(-3px) scale(1.02)',
-                  },
+                  '&:hover': { background: '#303134' },
                 }}
               >
                 Open Dashboard
@@ -570,26 +458,21 @@ export default function HomePage() {
                 size="large"
                 onClick={() => router.push('/login')}
                 sx={{
-                  px: 6, py: 2,
-                  background: 'linear-gradient(135deg, #4338ca, #6366f1)',
+                  px: 5, py: 1.6,
+                  background: '#202124',
                   color: 'white',
-                  fontWeight: 700,
-                  fontSize: '1.05rem',
-                  borderRadius: '14px',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  borderRadius: '100px',
                   textTransform: 'none',
-                  boxShadow: '0 8px 30px rgba(99,102,241,0.3)',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: '0 12px 40px rgba(99,102,241,0.4)',
-                    transform: 'translateY(-3px) scale(1.02)',
-                  },
+                  '&:hover': { background: '#303134' },
                 }}
               >
                 Start Protecting Now
               </Button>
             )}
-            <Typography sx={{ mt: 6, color: '#94a3b8', fontSize: '0.8rem' }}>
-              Built with Google Gemini 2.5 &middot; Vertex AI &middot; Cloud Run
+            <Typography sx={{ mt: 5, color: '#9aa0a6', fontSize: '0.75rem' }}>
+              Powered by Google Gemini 2.5 &middot; Vertex AI &middot; Cloud Run
             </Typography>
           </Box>
         </RevealOnScroll>
