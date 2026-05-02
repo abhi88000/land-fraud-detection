@@ -139,8 +139,19 @@ export default function DocumentAnalysisPage() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', gap: 2 }}>
-        <CircularProgress size={48} />
-        <Typography variant="body1" color="text.secondary">Loading document details...</Typography>
+        <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+          <Box sx={{
+            width: 64, height: 64, borderRadius: '50%',
+            border: '3px solid #e8f0fe', borderTopColor: '#4285F4',
+            animation: 'spin 1s linear infinite',
+          }} />
+          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <DescriptionIcon sx={{ fontSize: 24, color: '#4285F4' }} />
+          </Box>
+        </Box>
+        <Typography variant="body1" sx={{ color: '#5f6368', animation: 'pulse 2s ease-in-out infinite' }}>
+          Loading document details...
+        </Typography>
       </Box>
     );
   }

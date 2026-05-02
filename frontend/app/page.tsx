@@ -4,8 +4,6 @@ import * as React from 'react';
 import { Button, Container, Typography, Box, Grid, Paper, Chip } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth';
-import { useEffect } from 'react';
-import LoadingScreen from '@/components/ui/LoadingScreen';
 import SecurityIcon from '@mui/icons-material/Security';
 import DescriptionIcon from '@mui/icons-material/Description';
 import GavelIcon from '@mui/icons-material/Gavel';
@@ -45,20 +43,12 @@ export default function HomePage() {
   const { user, loading, guestLogin } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, loading, router]);
-
   const handleGuestLogin = () => {
     guestLogin();
     router.push('/dashboard');
   };
 
-  if (loading) {
-    return <LoadingScreen />;
-  }
+  const showDashboardBanner = !loading && user;
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
@@ -96,7 +86,23 @@ export default function HomePage() {
             and tells you if something is off — before you lose your money.
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {!user && (
+            {showDashboardBanner ? (
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => router.push('/dashboard')}
+                sx={{
+                  bgcolor: 'white',
+                  color: '#1a237e',
+                  fontWeight: 'bold',
+                  px: 4,
+                  py: 1.5,
+                  '&:hover': { bgcolor: '#f5f5f5' },
+                }}
+              >
+                Go to Dashboard
+              </Button>
+            ) : !loading && (
               <>
                 <Button
                   variant="contained"
@@ -254,7 +260,16 @@ export default function HomePage() {
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           Verify your land documents with AI before you pay.
         </Typography>
-        {!user && (
+        {showDashboardBanner ? (
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => router.push('/dashboard')}
+            sx={{ px: 5, py: 1.5, fontWeight: 'bold' }}
+          >
+            Go to Dashboard
+          </Button>
+        ) : !loading && (
           <Button
             variant="contained"
             size="large"

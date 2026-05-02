@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { Typography, Box, Button, CircularProgress, Alert, Paper, Chip } from '@mui/material';
+import { Typography, Box, Button, CircularProgress, Alert, Paper, Chip, Skeleton } from '@mui/material';
 import { useAuth } from '@/lib/firebase/auth';
 import { useEffect, useState } from 'react';
 import { Document, DocumentStatus } from '@/lib/types';
@@ -13,6 +13,7 @@ import FolderIcon from '@mui/icons-material/Folder';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ShieldIcon from '@mui/icons-material/Shield';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -104,7 +105,7 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2, mb: 4 }}>
-        {statCards.map((card) => (
+        {statCards.map((card, idx) => (
           <Paper
             key={card.label}
             elevation={0}
@@ -115,6 +116,10 @@ export default function DashboardPage() {
               display: 'flex',
               alignItems: 'center',
               gap: 2,
+              transition: 'all 0.3s ease',
+              animation: `fadeSlideUp 0.5s ease ${idx * 0.08}s forwards`,
+              opacity: 0,
+              '&:hover': { borderColor: card.color, boxShadow: `0 4px 16px ${card.color}15` },
             }}
           >
             <Box sx={{
@@ -138,9 +143,31 @@ export default function DashboardPage() {
 
       {/* Document List */}
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
-          <CircularProgress size={36} />
-        </Box>
+        <Paper elevation={0} sx={{ borderRadius: 2, border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+          {/* Skeleton table header */}
+          <Box sx={{ px: 2, py: 1.5, bgcolor: '#f8f9fa', borderBottom: '2px solid #e0e0e0' }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Skeleton variant="rectangular" width={20} height={20} sx={{ borderRadius: 0.5 }} animation="wave" />
+              <Skeleton variant="text" width={60} animation="wave" />
+              <Box sx={{ flex: 1 }} />
+              <Skeleton variant="text" width={60} animation="wave" />
+              <Skeleton variant="text" width={60} animation="wave" />
+              <Skeleton variant="text" width={60} animation="wave" />
+            </Box>
+          </Box>
+          {/* Skeleton rows */}
+          {[1, 2, 3].map(i => (
+            <Box key={i} sx={{ px: 2, py: 2, borderBottom: '1px solid #f1f3f4', display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Skeleton variant="rectangular" width={20} height={20} sx={{ borderRadius: 0.5 }} animation="wave" />
+              <Skeleton variant="circular" width={24} height={24} animation="wave" />
+              <Skeleton variant="text" width={`${30 + i * 10}%`} animation="wave" />
+              <Box sx={{ flex: 1 }} />
+              <Skeleton variant="rounded" width={70} height={24} animation="wave" />
+              <Skeleton variant="text" width={80} animation="wave" />
+              <Skeleton variant="circular" width={28} height={28} animation="wave" />
+            </Box>
+          ))}
+        </Paper>
       )}
       {error && (
         <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>

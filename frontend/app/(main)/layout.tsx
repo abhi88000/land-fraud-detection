@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Box, CssBaseline, AppBar, Toolbar, Typography, Button, Container, IconButton, Avatar, Menu, MenuItem, Divider } from '@mui/material';
 import { useAuth } from '@/lib/firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 import ShieldIcon from '@mui/icons-material/Shield';
 import HomeIcon from '@mui/icons-material/Home';
@@ -50,42 +51,45 @@ export default function MainLayout({
       >
         <Toolbar sx={{ gap: 1 }}>
           {/* Logo */}
-          <Box
-            sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', mr: 3 }}
-            onClick={() => router.push('/')}
-          >
+          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, marginRight: 24 }}>
             <ShieldIcon sx={{ color: '#4285F4', fontSize: 28 }} />
             <Typography variant="h6" fontWeight={600} sx={{ color: '#202124', letterSpacing: '-0.5px' }}>
               LandGuard
             </Typography>
-          </Box>
+          </Link>
 
           {/* Nav links */}
           {user && (
             <Box sx={{ display: 'flex', gap: 0.5 }}>
               <Button
+                component={Link}
+                href="/"
+                prefetch={true}
                 startIcon={<HomeIcon />}
-                onClick={() => router.push('/')}
                 sx={{
                   color: pathname === '/' ? '#1a73e8' : '#5f6368',
                   fontWeight: pathname === '/' ? 600 : 400,
                   fontSize: '0.875rem',
                   borderRadius: '20px',
                   px: 2,
+                  textDecoration: 'none',
                   '&:hover': { bgcolor: '#f1f3f4' },
                 }}
               >
                 Home
               </Button>
               <Button
+                component={Link}
+                href="/dashboard"
+                prefetch={true}
                 startIcon={<DashboardIcon />}
-                onClick={() => router.push('/dashboard')}
                 sx={{
-                  color: pathname === '/dashboard' ? '#1a73e8' : '#5f6368',
-                  fontWeight: pathname === '/dashboard' ? 600 : 400,
+                  color: pathname?.startsWith('/dashboard') ? '#1a73e8' : '#5f6368',
+                  fontWeight: pathname?.startsWith('/dashboard') ? 600 : 400,
                   fontSize: '0.875rem',
                   borderRadius: '20px',
                   px: 2,
+                  textDecoration: 'none',
                   '&:hover': { bgcolor: '#f1f3f4' },
                 }}
               >

@@ -84,9 +84,14 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete, onAnal
     try {
       const token = await user?.getIdToken();
       await analyzeDocuments(selected, token);
-      setSelected([]);
       onAnalysisStarted?.();
-      router.push(`/documents/${selected[0]}`);
+      // Navigate to batch view (works for single doc too)
+      if (selected.length === 1) {
+        router.push(`/documents/${selected[0]}`);
+      } else {
+        router.push(`/documents/batch?ids=${selected.join(',')}`);
+      }
+      setSelected([]);
     } catch (err: any) {
       console.error('Failed to start analysis:', err);
       alert(err.message || 'Failed to start analysis');
@@ -143,20 +148,51 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete, onAnal
           <Typography variant="body2" fontWeight={500} sx={{ color: '#1967d2' }}>
             {selected.length} selected
           </Typography>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<PlayArrowIcon />}
-            onClick={handleAnalyze}
-            disabled={analyzing}
-            disableElevation
-            sx={{
-              borderRadius: '16px', textTransform: 'none', fontWeight: 500,
-              bgcolor: '#1a73e8', '&:hover': { bgcolor: '#1765cc' },
-            }}
-          >
-            {analyzing ? 'Starting...' : 'Analyze Selected'}
-          </Button>
+          {/* Show Analyze button only if there are unanalyzed docs in selection */}
+          {selected.some(id => {
+            const doc = documents.find(d => d.id === id);
+            return doc && doc.status !== DocumentStatus.COMPLETED;
+          }) && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<PlayArrowIcon />}
+              onClick={handleAnalyze}
+              disabled={analyzing}
+              disableElevation
+              sx={{
+                borderRadius: '16px', textTransform: 'none', fontWeight: 500,
+                bgcolor: '#1a73e8', '&:hover': { bgcolor: '#1765cc' },
+              }}
+            >
+              {analyzing ? 'Starting...' : 'Analyze Selected'}
+            </Button>
+          )}
+          {/* Show View Reports button if multiple analyzed docs selected */}
+          {selected.filter(id => {
+            const doc = documents.find(d => d.id === id);
+            return doc && doc.status === DocumentStatus.COMPLETED;
+          }).length >= 2 && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<VisibilityIcon />}
+              onClick={() => {
+                const analyzedIds = selected.filter(id => {
+                  const doc = documents.find(d => d.id === id);
+                  return doc && doc.status === DocumentStatus.COMPLETED;
+                });
+                router.push(`/documents/batch?ids=${analyzedIds.join(',')}`);
+              }}
+              disableElevation
+              sx={{
+                borderRadius: '16px', textTransform: 'none', fontWeight: 500,
+                borderColor: '#1a73e8', color: '#1a73e8',
+              }}
+            >
+              View Combined Report
+            </Button>
+          )}
         </Paper>
       )}
 
