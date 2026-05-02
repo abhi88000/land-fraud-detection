@@ -76,7 +76,7 @@ async def upload_document(
 
     return DocumentUploadResponse(document_id=document_id, message="Document uploaded successfully. Analysis started.")
 
-@router.get("/", response_model=DocumentListResponse)
+@router.get("", response_model=DocumentListResponse)
 async def list_documents(
     current_user: User = Depends(get_current_user),
     page: int = 1,
