@@ -177,8 +177,3 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
 };
 
 export default UploadDocumentDialog;
-    </Dialog>
-  );
-};
-
-export default UploadDocumentDialog;
