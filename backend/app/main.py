@@ -53,9 +53,23 @@ async def root():
 
 @app.get(f"{settings.API_V1_STR}/health")
 async def health_check():
+    from app.services.monitoring import get_metrics_summary
+    from app.services.cache import get_redis_client
+
+    redis_status = "disabled"
+    if settings.REDIS_ENABLED:
+        client = get_redis_client()
+        redis_status = "connected" if client else "unavailable"
+
     return {
         "status": "healthy",
         "version": "1.0.0",
         "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
-        "project": settings.GCP_PROJECT_ID
+        "project": settings.GCP_PROJECT_ID,
+        "services": {
+            "redis": redis_status,
+            "pubsub": "enabled" if settings.PUBSUB_ENABLED else "disabled",
+            "bigquery": "enabled" if settings.BIGQUERY_ENABLED else "disabled",
+        },
+        "metrics": get_metrics_summary(),
     }
