@@ -110,14 +110,14 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
                     fraud_type = FraudType.UNKNOWN
 
                 try:
-                    sev = Severity(f.get("severity", "low").lower())
+                    sev = Severity((f.get("severity") or "low").lower())
                 except ValueError:
                     sev = Severity.LOW
 
                 findings.append(FraudFinding(
                     fraud_type=fraud_type,
-                    description=f.get("description", ""),
-                    is_suspicious=f.get("is_suspicious", False),
+                    description=f.get("description") or "",
+                    is_suspicious=bool(f.get("is_suspicious")),
                     severity=sev,
                     evidence=f.get("evidence") or [],
                     recommendation=f.get("recommendation"),

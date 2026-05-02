@@ -76,15 +76,15 @@ class LegalRulesAgent(BaseAgent[ExtractedData, List[LegalFinding]]):
             findings = []
             for f in parsed_findings:
                 try:
-                    sev = Severity(f.get("severity", "low").lower())
+                    sev = Severity((f.get("severity") or "low").lower())
                 except ValueError:
                     sev = Severity.LOW
                 findings.append(LegalFinding(
-                    rule_id=f.get("rule_id", "L-000"),
-                    description=f.get("description", ""),
-                    is_compliant=f.get("is_compliant", True),
+                    rule_id=f.get("rule_id") or "L-000",
+                    description=f.get("description") or "",
+                    is_compliant=bool(f.get("is_compliant")),
                     severity=sev,
-                    explanation=f.get("explanation", ""),
+                    explanation=f.get("explanation") or "",
                     remediation_suggestion=f.get("remediation_suggestion"),
                 ))
 
