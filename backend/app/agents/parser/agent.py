@@ -103,14 +103,14 @@ class DocumentParserAgent(BaseAgent[str, ExtractedData]):
             property_details = None
             if prop:
                 property_details = PropertyDetails(
-                    survey_numbers=prop.get("survey_numbers", []),
-                    plot_numbers=prop.get("plot_numbers", []),
-                    area=prop.get("area", ""),
-                    unit=prop.get("unit", ""),
-                    address=prop.get("address", ""),
-                    city=prop.get("city", ""),
-                    district=prop.get("district", ""),
-                    state=prop.get("state", ""),
+                    survey_numbers=prop.get("survey_numbers") or [],
+                    plot_numbers=prop.get("plot_numbers") or [],
+                    area=prop.get("area"),
+                    unit=prop.get("unit"),
+                    address=prop.get("address"),
+                    city=prop.get("city"),
+                    district=prop.get("district"),
+                    state=prop.get("state"),
                     country=prop.get("country", "India"),
                 )
 

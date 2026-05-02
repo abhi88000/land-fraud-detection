@@ -11,12 +11,12 @@ class Party(BaseModel):
 class PropertyDetails(BaseModel):
     survey_numbers: List[str] = Field(default_factory=list)
     plot_numbers: List[str] = Field(default_factory=list)
-    area: str
-    unit: str # e.g., "sq ft", "acres"
-    address: str
-    city: str
-    district: str
-    state: str
+    area: Optional[str] = None
+    unit: Optional[str] = None # e.g., "sq ft", "acres"
+    address: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    state: Optional[str] = None
     country: str = "India"
 
 class RegistrationInfo(BaseModel):
@@ -81,11 +81,11 @@ class Severity(str, Enum):
     CRITICAL = "critical"
 
 class LegalFinding(BaseModel):
-    rule_id: str = Field(..., description="Identifier for the legal rule checked")
-    description: str = Field(..., description="Description of the legal rule")
-    is_compliant: bool = Field(..., description="Whether the document complies with the rule")
-    severity: Severity = Field(..., description="Severity of non-compliance")
-    explanation: str = Field(..., description="Detailed explanation of the finding and its implications")
+    rule_id: str = Field(default="unknown", description="Identifier for the legal rule checked")
+    description: str = Field(default="", description="Description of the legal rule")
+    is_compliant: bool = Field(default=False, description="Whether the document complies with the rule")
+    severity: Severity = Field(default=Severity.LOW, description="Severity of non-compliance")
+    explanation: str = Field(default="", description="Detailed explanation of the finding and its implications")
     remediation_suggestion: Optional[str] = None
 
     class Config:
@@ -109,10 +109,10 @@ class FraudType(str, Enum):
     UNKNOWN = "unknown"
 
 class FraudFinding(BaseModel):
-    fraud_type: FraudType = Field(..., description="Category of potential fraud")
-    description: str = Field(..., description="Brief description of the fraud finding")
-    is_suspicious: bool = Field(..., description="Whether a suspicious activity was detected")
-    severity: Severity = Field(..., description="Severity of the suspicious activity")
+    fraud_type: FraudType = Field(default=FraudType.UNKNOWN, description="Category of potential fraud")
+    description: str = Field(default="", description="Brief description of the fraud finding")
+    is_suspicious: bool = Field(default=False, description="Whether a suspicious activity was detected")
+    severity: Severity = Field(default=Severity.LOW, description="Severity of the suspicious activity")
     evidence: List[str] = Field(default_factory=list, description="List of evidence points or discrepancies")
     recommendation: Optional[str] = None
 
@@ -151,9 +151,9 @@ class VerificationChecklistItem(BaseModel):
 
 class AnalysisReport(BaseModel):
     document_id: str = Field(..., description="ID of the analyzed document")
-    summary: str = Field(..., description="Overall summary of the document analysis")
-    risk_score: RiskScore
-    extracted_data: ExtractedData
+    summary: str = Field(default="", description="Overall summary of the document analysis")
+    risk_score: Optional[RiskScore] = None
+    extracted_data: Optional[ExtractedData] = None
     legal_findings: List[LegalFinding] = Field(default_factory=list)
     fraud_findings: List[FraudFinding] = Field(default_factory=list)
     verification_checklist: List[VerificationChecklistItem] = Field(default_factory=list)
