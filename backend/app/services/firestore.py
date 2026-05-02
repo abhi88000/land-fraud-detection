@@ -18,7 +18,11 @@ def _convert_timestamps(obj):
     elif isinstance(obj, list):
         return [_convert_timestamps(item) for item in obj]
     elif hasattr(obj, 'isoformat'):
-        return obj.isoformat()
+        iso = obj.isoformat()
+        # Ensure timezone-naive datetimes get Z suffix for JS compatibility
+        if not iso.endswith('Z') and '+' not in iso:
+            iso += 'Z'
+        return iso
     return obj
 
 class MockFirestoreService:

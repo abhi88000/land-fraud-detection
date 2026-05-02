@@ -9,7 +9,10 @@ import DocumentList from '@/components/dashboard/DocumentList';
 import UploadDocumentDialog from '@/components/dashboard/UploadDocumentDialog';
 import { fetchDocuments } from '@/lib/api';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DescriptionIcon from '@mui/icons-material/Description';
+import FolderIcon from '@mui/icons-material/Folder';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -56,63 +59,87 @@ export default function DashboardPage() {
   }
 
   const completedCount = documents.filter(d => d.status === DocumentStatus.COMPLETED).length;
-  const pendingCount = documents.filter(d => d.status === DocumentStatus.PENDING || d.status === DocumentStatus.IN_PROGRESS).length;
+  const pendingCount = documents.filter(d =>
+    d.status === DocumentStatus.PENDING || d.status === DocumentStatus.UPLOADED || d.status === DocumentStatus.IN_PROGRESS
+  ).length;
+  const failedCount = documents.filter(d => d.status === DocumentStatus.FAILED).length;
+
+  const statCards = [
+    { label: 'Total Documents', value: documents.length, icon: <FolderIcon />, color: '#1a73e8', bg: '#e8f0fe' },
+    { label: 'Analyzed', value: completedCount, icon: <CheckCircleOutlineIcon />, color: '#1e8e3e', bg: '#e6f4ea' },
+    { label: 'Awaiting Analysis', value: pendingCount, icon: <HourglassEmptyIcon />, color: '#e37400', bg: '#fef7e0' },
+    { label: 'Failed', value: failedCount, icon: <ErrorOutlineIcon />, color: '#d93025', bg: '#fce8e6' },
+  ];
 
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
         <Box>
-          <Typography variant="h4" component="h1" fontWeight="bold">
-            Dashboard
+          <Typography variant="h5" fontWeight={600} sx={{ color: '#202124' }}>
+            Documents
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Welcome back, {user.email || user.uid}
+          <Typography variant="body2" sx={{ color: '#5f6368', mt: 0.5 }}>
+            Upload land documents and run AI-powered fraud analysis
           </Typography>
         </Box>
         <Button
           variant="contained"
           startIcon={<CloudUploadIcon />}
           onClick={() => setUploadDialogOpen(true)}
-          sx={{ borderRadius: 2, px: 3 }}
+          disableElevation
+          sx={{
+            borderRadius: '20px',
+            px: 3,
+            py: 1,
+            textTransform: 'none',
+            fontWeight: 500,
+            bgcolor: '#1a73e8',
+            '&:hover': { bgcolor: '#1765cc' },
+          }}
         >
           Upload Document
         </Button>
       </Box>
 
-      {/* Stats Cards */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-        <Paper sx={{ p: 2, flex: 1, minWidth: 150, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <DescriptionIcon color="primary" />
-          <Box>
-            <Typography variant="h5" fontWeight="bold">{documents.length}</Typography>
-            <Typography variant="caption" color="text.secondary">Total Documents</Typography>
-          </Box>
-        </Paper>
-        <Paper sx={{ p: 2, flex: 1, minWidth: 150, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Chip label="Done" color="success" size="small" />
-          <Box>
-            <Typography variant="h5" fontWeight="bold">{completedCount}</Typography>
-            <Typography variant="caption" color="text.secondary">Analyzed</Typography>
-          </Box>
-        </Paper>
-        <Paper sx={{ p: 2, flex: 1, minWidth: 150, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Chip label="Pending" color="warning" size="small" />
-          <Box>
-            <Typography variant="h5" fontWeight="bold">{pendingCount}</Typography>
-            <Typography variant="caption" color="text.secondary">In Progress</Typography>
-          </Box>
-        </Paper>
+      {/* Stats */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2, mb: 4 }}>
+        {statCards.map((card) => (
+          <Paper
+            key={card.label}
+            elevation={0}
+            sx={{
+              p: 2.5,
+              borderRadius: 2,
+              border: '1px solid #e0e0e0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+            }}
+          >
+            <Box sx={{
+              width: 40, height: 40, borderRadius: '12px',
+              bgcolor: card.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: card.color,
+            }}>
+              {card.icon}
+            </Box>
+            <Box>
+              <Typography variant="h5" fontWeight={600} sx={{ color: '#202124', lineHeight: 1.2 }}>
+                {card.value}
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#5f6368' }}>
+                {card.label}
+              </Typography>
+            </Box>
+          </Paper>
+        ))}
       </Box>
 
       {/* Document List */}
-      <Typography variant="h6" fontWeight="bold" gutterBottom>
-        Your Documents
-      </Typography>
-
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
+          <CircularProgress size={36} />
         </Box>
       )}
       {error && (

@@ -1,22 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
   Chip,
   Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
   LinearProgress,
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Alert,
+  Collapse,
+  IconButton,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -39,41 +38,124 @@ const getSeverityColor = (severity: string): 'error' | 'warning' | 'info' | 'suc
   }
 };
 
+const getSeverityBg = (severity: string): string => {
+  switch (severity) {
+    case 'critical': return '#fce8e6';
+    case 'high': return '#fce8e6';
+    case 'medium': return '#fef7e0';
+    case 'low': return '#e8f0fe';
+    default: return '#f1f3f4';
+  }
+};
+
 const getRiskLabel = (score: number): { label: string; color: 'error' | 'warning' | 'success' } => {
   if (score >= 70) return { label: 'High Risk', color: 'error' };
   if (score >= 40) return { label: 'Medium Risk', color: 'warning' };
   return { label: 'Low Risk', color: 'success' };
 };
 
+/* Expandable finding row — keeps the list compact */
+const FindingRow: React.FC<{
+  icon: React.ReactNode;
+  title: string;
+  severity: string;
+  detail?: string;
+  suggestion?: string;
+}> = ({ icon, title, severity, detail, suggestion }) => {
+  const [open, setOpen] = useState(false);
+  const hasDetail = detail || suggestion;
+
+  return (
+    <Box sx={{ borderBottom: '1px solid #f1f3f4', '&:last-child': { borderBottom: 0 } }}>
+      <Box
+        onClick={() => hasDetail && setOpen(!open)}
+        sx={{
+          display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 1,
+          cursor: hasDetail ? 'pointer' : 'default',
+          '&:hover': hasDetail ? { bgcolor: '#f8f9fa' } : {},
+          borderRadius: 1,
+        }}
+      >
+        {icon}
+        <Typography variant="body2" sx={{ flex: 1, color: '#202124', fontWeight: 500, fontSize: '0.85rem' }}>
+          {title}
+        </Typography>
+        <Chip
+          label={severity}
+          size="small"
+          sx={{
+            fontWeight: 600, fontSize: '0.7rem', height: 22,
+            bgcolor: getSeverityBg(severity),
+            color: getSeverityColor(severity) === 'error' ? '#d93025'
+              : getSeverityColor(severity) === 'warning' ? '#e37400'
+              : getSeverityColor(severity) === 'info' ? '#1a73e8' : '#5f6368',
+            border: 'none',
+          }}
+        />
+        {hasDetail && (
+          <IconButton size="small" sx={{ ml: 0.5, p: 0.25 }}>
+            {open ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+          </IconButton>
+        )}
+      </Box>
+      {hasDetail && (
+        <Collapse in={open}>
+          <Box sx={{ pl: 5, pr: 2, pb: 1.5 }}>
+            {detail && (
+              <Typography variant="body2" sx={{ color: '#5f6368', fontSize: '0.8rem', lineHeight: 1.6 }}>
+                {detail}
+              </Typography>
+            )}
+            {suggestion && (
+              <Typography variant="body2" sx={{ color: '#1a73e8', fontSize: '0.8rem', mt: 0.5 }}>
+                {suggestion}
+              </Typography>
+            )}
+          </Box>
+        </Collapse>
+      )}
+    </Box>
+  );
+};
+
 const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
   const riskInfo = getRiskLabel(report.risk_score.overall_score);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {/* Risk Score */}
-      <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: 'background.default' }}>
-        <Typography variant="h3" fontWeight="bold" color={`${riskInfo.color}.main`}>
-          {report.risk_score.overall_score}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">/100</Typography>
-        <Chip label={riskInfo.label} color={riskInfo.color} sx={{ mt: 1 }} />
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Risk Score — compact horizontal layout */}
+      <Box sx={{
+        display: 'flex', alignItems: 'center', gap: 3, p: 3,
+        borderRadius: 2, border: '1px solid #e0e0e0', bgcolor: '#fafafa',
+      }}>
+        <Box sx={{ textAlign: 'center', minWidth: 80 }}>
+          <Typography variant="h3" fontWeight={700} color={`${riskInfo.color}.main`} lineHeight={1}>
+            {report.risk_score.overall_score}
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#80868b' }}>/100</Typography>
+          <Box sx={{ mt: 0.5 }}>
+            <Chip label={riskInfo.label} color={riskInfo.color} size="small" sx={{ fontWeight: 600 }} />
+          </Box>
+        </Box>
 
-        {/* Category Scores */}
+        <Divider orientation="vertical" flexItem />
+
+        {/* Category bars */}
         {report.risk_score.category_scores && Object.keys(report.risk_score.category_scores).length > 0 && (
-          <Box sx={{ mt: 2, textAlign: 'left' }}>
+          <Box sx={{ flex: 1 }}>
             {Object.entries(report.risk_score.category_scores).map(([category, score]) => (
-              <Box key={category} sx={{ mb: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="caption" sx={{ textTransform: 'capitalize' }}>
+              <Box key={category} sx={{ mb: 0.75 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+                  <Typography variant="caption" sx={{ textTransform: 'capitalize', color: '#5f6368' }}>
                     {category.replace(/_/g, ' ')}
                   </Typography>
-                  <Typography variant="caption">{score}/100</Typography>
+                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500 }}>{score}</Typography>
                 </Box>
                 <LinearProgress
                   variant="determinate"
                   value={score}
                   color={getRiskLabel(score).color}
-                  sx={{ height: 6, borderRadius: 3 }}
+                  sx={{ height: 5, borderRadius: 3 }}
                 />
               </Box>
             ))}
@@ -82,147 +164,118 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
       </Box>
 
       {/* Summary */}
-      <Box>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Summary</Typography>
-        <Typography variant="body2">{report.summary}</Typography>
-      </Box>
+      <Typography variant="body2" sx={{ color: '#3c4043', lineHeight: 1.7 }}>
+        {report.summary}
+      </Typography>
 
-      <Divider />
-
-      {/* Legal Findings */}
-      <Accordion defaultExpanded={report.legal_findings.some(f => !f.is_compliant)}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <GavelIcon sx={{ mr: 1, color: 'primary.main' }} />
-          <Typography variant="subtitle1">
-            Legal Findings ({report.legal_findings.length})
+      {/* Legal Findings — collapsed by default, compact rows */}
+      <Accordion
+        defaultExpanded={report.legal_findings.some(f => !f.is_compliant)}
+        disableGutters
+        elevation={0}
+        sx={{ border: '1px solid #e0e0e0', borderRadius: '8px !important', '&:before': { display: 'none' } }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
+          <GavelIcon sx={{ mr: 1.5, color: '#1a73e8', fontSize: 20 }} />
+          <Typography variant="body1" fontWeight={600} sx={{ color: '#202124' }}>
+            Legal Findings
           </Typography>
+          <Chip label={report.legal_findings.length} size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#e8f0fe', color: '#1a73e8' }} />
         </AccordionSummary>
-        <AccordionDetails>
+        <AccordionDetails sx={{ px: 2, pt: 0, pb: 1 }}>
           {report.legal_findings.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">No legal findings.</Typography>
+            <Typography variant="body2" sx={{ color: '#80868b' }}>No legal findings.</Typography>
           ) : (
-            <List dense disablePadding>
-              {report.legal_findings.map((finding: LegalFinding, idx: number) => (
-                <ListItem key={idx} sx={{ alignItems: 'flex-start', pl: 0 }}>
-                  <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
-                    {finding.is_compliant ? (
-                      <CheckCircleIcon color="success" fontSize="small" />
-                    ) : (
-                      <CancelIcon color="error" fontSize="small" />
-                    )}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" fontWeight="medium">{finding.description}</Typography>
-                        <Chip label={finding.severity} size="small" color={getSeverityColor(finding.severity)} variant="outlined" />
-                      </Box>
-                    }
-                    secondary={
-                      <>
-                        <Typography variant="caption" display="block">{finding.explanation}</Typography>
-                        {finding.remediation_suggestion && (
-                          <Typography variant="caption" color="primary" display="block" sx={{ mt: 0.5 }}>
-                            Suggestion: {finding.remediation_suggestion}
-                          </Typography>
-                        )}
-                      </>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
+            report.legal_findings.map((f: LegalFinding, i: number) => (
+              <FindingRow
+                key={i}
+                icon={f.is_compliant
+                  ? <CheckCircleIcon sx={{ fontSize: 18, color: '#1e8e3e' }} />
+                  : <CancelIcon sx={{ fontSize: 18, color: '#d93025' }} />
+                }
+                title={f.description}
+                severity={f.severity}
+                detail={f.explanation}
+                suggestion={f.remediation_suggestion}
+              />
+            ))
           )}
         </AccordionDetails>
       </Accordion>
 
       {/* Fraud Findings */}
-      <Accordion defaultExpanded={report.fraud_findings.some(f => f.is_suspicious)}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <SecurityIcon sx={{ mr: 1, color: 'error.main' }} />
-          <Typography variant="subtitle1">
-            Fraud Findings ({report.fraud_findings.length})
+      <Accordion
+        defaultExpanded={report.fraud_findings.some(f => f.is_suspicious)}
+        disableGutters
+        elevation={0}
+        sx={{ border: '1px solid #e0e0e0', borderRadius: '8px !important', '&:before': { display: 'none' } }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
+          <SecurityIcon sx={{ mr: 1.5, color: '#d93025', fontSize: 20 }} />
+          <Typography variant="body1" fontWeight={600} sx={{ color: '#202124' }}>
+            Fraud Indicators
           </Typography>
+          <Chip label={report.fraud_findings.length} size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#fce8e6', color: '#d93025' }} />
         </AccordionSummary>
-        <AccordionDetails>
+        <AccordionDetails sx={{ px: 2, pt: 0, pb: 1 }}>
           {report.fraud_findings.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">No fraud indicators found.</Typography>
+            <Typography variant="body2" sx={{ color: '#80868b' }}>No fraud indicators found.</Typography>
           ) : (
-            <List dense disablePadding>
-              {report.fraud_findings.map((finding: FraudFinding, idx: number) => (
-                <ListItem key={idx} sx={{ alignItems: 'flex-start', pl: 0 }}>
-                  <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
-                    {finding.is_suspicious ? (
-                      <WarningIcon color="error" fontSize="small" />
-                    ) : (
-                      <CheckCircleIcon color="success" fontSize="small" />
-                    )}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" fontWeight="medium">{finding.description}</Typography>
-                        <Chip label={finding.severity} size="small" color={getSeverityColor(finding.severity)} variant="outlined" />
-                      </Box>
-                    }
-                    secondary={
-                      <>
-                        {finding.evidence.length > 0 && (
-                          <Typography variant="caption" display="block">
-                            Evidence: {finding.evidence.join('; ')}
-                          </Typography>
-                        )}
-                        {finding.recommendation && (
-                          <Typography variant="caption" color="primary" display="block" sx={{ mt: 0.5 }}>
-                            Recommendation: {finding.recommendation}
-                          </Typography>
-                        )}
-                      </>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
+            report.fraud_findings.map((f: FraudFinding, i: number) => (
+              <FindingRow
+                key={i}
+                icon={f.is_suspicious
+                  ? <WarningIcon sx={{ fontSize: 18, color: '#e37400' }} />
+                  : <CheckCircleIcon sx={{ fontSize: 18, color: '#1e8e3e' }} />
+                }
+                title={f.description}
+                severity={f.severity}
+                detail={f.evidence?.length > 0 ? f.evidence.join('; ') : undefined}
+                suggestion={f.recommendation}
+              />
+            ))
           )}
         </AccordionDetails>
       </Accordion>
 
-      {/* Verification Checklist */}
-      <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <AssignmentIcon sx={{ mr: 1, color: 'secondary.main' }} />
-          <Typography variant="subtitle1">
-            Verification Checklist ({report.verification_checklist.length})
+      {/* Verification Checklist — simple compact list */}
+      <Accordion
+        disableGutters
+        elevation={0}
+        sx={{ border: '1px solid #e0e0e0', borderRadius: '8px !important', '&:before': { display: 'none' } }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
+          <AssignmentIcon sx={{ mr: 1.5, color: '#1e8e3e', fontSize: 20 }} />
+          <Typography variant="body1" fontWeight={600} sx={{ color: '#202124' }}>
+            Verification Checklist
           </Typography>
+          <Chip label={report.verification_checklist.length} size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#e6f4ea', color: '#1e8e3e' }} />
         </AccordionSummary>
-        <AccordionDetails>
+        <AccordionDetails sx={{ px: 2, pt: 0, pb: 1 }}>
           {report.verification_checklist.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">No checklist items.</Typography>
+            <Typography variant="body2" sx={{ color: '#80868b' }}>No checklist items.</Typography>
           ) : (
-            <List dense disablePadding>
-              {report.verification_checklist.map((item: VerificationChecklistItem, idx: number) => (
-                <ListItem key={idx} sx={{ pl: 0 }}>
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    {item.is_checked ? (
-                      <CheckCircleIcon color="success" fontSize="small" />
-                    ) : (
-                      <CancelIcon color="disabled" fontSize="small" />
-                    )}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.item}
-                    secondary={item.details}
-                  />
-                </ListItem>
-              ))}
-            </List>
+            report.verification_checklist.map((item: VerificationChecklistItem, i: number) => (
+              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid #f1f3f4', '&:last-child': { borderBottom: 0 } }}>
+                {item.is_checked
+                  ? <CheckCircleIcon sx={{ fontSize: 18, color: '#1e8e3e' }} />
+                  : <CancelIcon sx={{ fontSize: 18, color: '#dadce0' }} />
+                }
+                <Box>
+                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.85rem' }}>{item.item}</Typography>
+                  {item.details && (
+                    <Typography variant="caption" sx={{ color: '#80868b' }}>{item.details}</Typography>
+                  )}
+                </Box>
+              </Box>
+            ))
           )}
         </AccordionDetails>
       </Accordion>
 
-      {/* Generated At */}
-      <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>
-        Report generated: {new Date(report.generated_at).toLocaleString()}
+      {/* Footer */}
+      <Typography variant="caption" sx={{ color: '#80868b', textAlign: 'right' }}>
+        Generated {new Date(report.generated_at).toLocaleString()}
       </Typography>
     </Box>
   );

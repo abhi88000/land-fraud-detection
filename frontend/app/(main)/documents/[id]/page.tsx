@@ -11,8 +11,6 @@ import ReportDisplay from '@/components/analysis/ReportDisplay';
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DescriptionIcon from '@mui/icons-material/Description';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
 
 export default function DocumentAnalysisPage() {
   const { id } = useParams();
@@ -176,33 +174,38 @@ export default function DocumentAnalysisPage() {
   return (
     <Box sx={{ py: 3 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => router.push('/dashboard')} size="small">
-          Back
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/dashboard')}
+          size="small"
+          sx={{ color: '#5f6368', textTransform: 'none', fontWeight: 500 }}
+        >
+          Dashboard
         </Button>
-        <DescriptionIcon color="primary" />
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+        <DescriptionIcon sx={{ color: '#4285f4', fontSize: 22 }} />
         <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h5" component="h1" fontWeight="bold">
+          <Typography variant="h6" fontWeight={600} sx={{ color: '#202124' }}>
             {document.file_name}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
-            <Chip
-              label={document.status.toUpperCase().replace('_', ' ')}
-              size="small"
-              color={
-                document.status === DocumentStatus.COMPLETED ? 'success' :
-                document.status === DocumentStatus.FAILED ? 'error' : 'warning'
-              }
-              icon={
-                document.status === DocumentStatus.COMPLETED ? <CheckCircleIcon /> :
-                document.status === DocumentStatus.FAILED ? <ErrorIcon /> : undefined
-              }
-            />
-            <Typography variant="caption" color="text.secondary">
-              Uploaded {new Date(document.created_at).toLocaleString()}
-            </Typography>
-          </Box>
+          <Typography variant="caption" sx={{ color: '#80868b' }}>
+            {new Date(document.created_at).toLocaleString()}
+          </Typography>
         </Box>
+        <Chip
+          label={
+            document.status === DocumentStatus.COMPLETED ? 'Analyzed' :
+            document.status === DocumentStatus.FAILED ? 'Failed' :
+            document.status === DocumentStatus.IN_PROGRESS ? 'Analyzing...' : 'Pending'
+          }
+          size="small"
+          color={
+            document.status === DocumentStatus.COMPLETED ? 'success' :
+            document.status === DocumentStatus.FAILED ? 'error' : 'warning'
+          }
+          sx={{ fontWeight: 500 }}
+        />
       </Box>
 
       {/* Progress Stepper - shown during analysis */}
