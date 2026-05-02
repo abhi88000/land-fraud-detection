@@ -22,15 +22,13 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
         self.fraud_agent = FraudDetectionAgent()
         self.report_agent = ReportGeneratorAgent()
 
-    async def run(self, document_id: str) -> AnalysisReport:
+    async def run(self, document_id: str, state_override: str = "", district_override: str = "") -> AnalysisReport:
         """
         Starts the end-to-end analysis workflow for a given document.
         """
-        # This run method is typically triggered by a background task/message queue.
-        # It's an internal method. The external trigger would call start_analysis.
-        return await self.start_analysis(document_id)
+        return await self.start_analysis(document_id, state_override, district_override)
 
-    async def start_analysis(self, document_id: str) -> AnalysisReport:
+    async def start_analysis(self, document_id: str, state_override: str = "", district_override: str = "") -> AnalysisReport:
         """
         Initiates the document analysis workflow.
         Updates document status and triggers sub-agents.
@@ -47,6 +45,19 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
 
             # 2. Document Parsing
             extracted_data = await self.parser_agent.run(document.gcs_path, document_id)
+
+            # Override state/district from user input if available
+            if state_override and extracted_data.property_details:
+                extracted_data.property_details.state = state_override
+            if district_override and extracted_data.property_details:
+                extracted_data.property_details.district = district_override
+            # Also use document-level state/district if not overridden
+            if not state_override and document.state and extracted_data.property_details:
+                if not extracted_data.property_details.state:
+                    extracted_data.property_details.state = document.state
+            if not district_override and document.district and extracted_data.property_details:
+                if not extracted_data.property_details.district:
+                    extracted_data.property_details.district = document.district
 
             # 3. Legal Rules Check and Fraud Detection (run in parallel)
             legal_findings, fraud_findings = await asyncio.gather(

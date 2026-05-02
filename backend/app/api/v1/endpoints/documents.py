@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status
 from typing import List, Optional
 from app.core.security import get_current_user
 from app.core.models import User
@@ -18,11 +18,13 @@ router = APIRouter()
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_202_ACCEPTED)
 async def upload_document(
     file: UploadFile = File(..., description="PDF or image land document to be analyzed"),
+    state: Optional[str] = Form(None),
+    district: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Uploads a land document for analysis.
-    The document is stored in GCS, an entry is created in Firestore, and analysis is triggered.
+    Uploads a land document. Does NOT auto-trigger analysis.
+    User must explicitly trigger analysis via /analysis/analyze endpoint.
     """
     allowed_content_types = ["application/pdf", "image/jpeg", "image/png", "image/tiff"]
     if not file.content_type or file.content_type not in allowed_content_types:
@@ -57,7 +59,9 @@ async def upload_document(
         file_name=file.filename,
         gcs_path=gcs_uri,
         content_type=file.content_type,
-        status=DocumentStatus.PENDING
+        status=DocumentStatus.PENDING,
+        state=state or "",
+        district=district or "",
     )
     try:
         await firestore.create_document_entry(document.id, document.dict())
@@ -66,13 +70,7 @@ async def upload_document(
         await gcs.delete_file(gcs_file_path) # Rollback GCS upload if Firestore fails
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to save document entry: {e}")
 
-    # Trigger the analysis process asynchronously (e.g., using a background task queue)
-    # For now, a direct call to the orchestrator agent, which would ideally be non-blocking.
-    orchestrator = OrchestratorAgent()
-    # In a production setup, this would enqueue a task (e.g., to Cloud Tasks/PubSub)
-    # The orchestrator would then be triggered by that task.
-    asyncio.create_task(orchestrator.start_analysis(document_id=document_id))
-    logger.info(f"Analysis triggered for document {document_id}.")
+    logger.info(f"Document {document_id} uploaded successfully. Awaiting analysis trigger.")
 
     return DocumentUploadResponse(document_id=document_id, message="Document uploaded successfully. Analysis started.")
 

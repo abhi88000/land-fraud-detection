@@ -18,6 +18,8 @@ class Document(BaseModel):
     gcs_path: str = Field(..., description="Google Cloud Storage path to the document")
     content_type: str = Field(..., description="MIME type of the document")
     status: DocumentStatus = Field(DocumentStatus.UPLOADED, description="Current status of the document analysis")
+    state: str = Field("", description="Indian state where the property is located")
+    district: str = Field("", description="District where the property is located")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Timestamp of document upload")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Timestamp of last update")
 

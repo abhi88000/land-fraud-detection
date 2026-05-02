@@ -121,7 +121,7 @@ export default function DashboardPage() {
         </Alert>
       )}
       {!loading && !error && (
-        <DocumentList documents={documents} onDelete={handleDocumentDelete} />
+        <DocumentList documents={documents} onDelete={handleDocumentDelete} onAnalysisStarted={handleDocumentDelete} />
       )}
 
       <UploadDocumentDialog

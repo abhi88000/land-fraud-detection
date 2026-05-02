@@ -13,6 +13,8 @@ export interface Document {
   gcs_path: string;
   content_type: string;
   status: DocumentStatus;
+  state?: string;
+  district?: string;
   created_at: string;
   updated_at: string;
   progress_message?: string;

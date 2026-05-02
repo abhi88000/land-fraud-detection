@@ -22,9 +22,11 @@ export async function fetchDocuments(token?: string): Promise<{ documents: Docum
   }
 }
 
-export async function uploadDocument(file: File, token?: string): Promise<{ document_id: string; message: string }> {
+export async function uploadDocument(file: File, token?: string, state?: string, district?: string): Promise<{ document_id: string; message: string }> {
   const formData = new FormData();
   formData.append('file', file);
+  if (state) formData.append('state', state);
+  if (district) formData.append('district', district);
 
   const headers: Record<string, string> = {};
   if (token) {
@@ -40,6 +42,26 @@ export async function uploadDocument(file: File, token?: string): Promise<{ docu
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to upload document');
+  }
+
+  return await response.json();
+}
+
+export async function analyzeDocuments(documentIds: string[], token?: string): Promise<{ message: string }> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_V1}/analysis/analyze`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ document_ids: documentIds }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to start analysis');
   }
 
   return await response.json();

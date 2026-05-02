@@ -7,7 +7,6 @@ import { useAuth } from '@/lib/firebase/auth';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchDocumentDetails, fetchAnalysisReport } from '@/lib/api';
 import { Document, AnalysisReport, DocumentStatus, AnalysisProgressEvent, LegalFinding, FraudFinding } from '@/lib/types';
-import DocumentViewer from '@/components/analysis/DocumentViewer';
 import ReportDisplay from '@/components/analysis/ReportDisplay';
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -235,25 +234,8 @@ export default function DocumentAnalysisPage() {
       )}
 
       <Grid container spacing={3}>
-        {/* Left: Document Viewer */}
-        <Grid item xs={12} md={analysisReport ? 5 : 7}>
-          <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
-            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-              Document Preview
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {document.gcs_path ? (
-              <Box sx={{ flexGrow: 1, minHeight: 400, border: '1px solid #e0e0e0', borderRadius: 1, overflow: 'hidden' }}>
-                <DocumentViewer gcsPath={document.gcs_path} />
-              </Box>
-            ) : (
-              <Alert severity="info">Document preview not available.</Alert>
-            )}
-          </Paper>
-        </Grid>
-
-        {/* Right: Analysis Results or Progress */}
-        <Grid item xs={12} md={analysisReport ? 7 : 5}>
+        {/* Analysis Results or Progress */}
+        <Grid item xs={12}>
           {/* Live Events during analysis */}
           {isAnalyzing && (
             <Paper sx={{ p: 2, mb: 2, borderRadius: 2 }}>

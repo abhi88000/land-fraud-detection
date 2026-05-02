@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 import asyncio
 import json
 from datetime import datetime, timezone
+from typing import List
 from app.core.security import get_current_user
 from app.core.models import User
 from app.models.document import DocumentStatus, Document
@@ -10,12 +12,65 @@ from app.models.analysis import AnalysisReport
 from app.services import firestore
 from app.utils.sse import generate_sse_event
 from app.api.v1.schemas.analysis import AnalysisReportResponse, AnalysisProgressEvent
+from app.agents.orchestrator import OrchestratorAgent
 from app.core.errors import DocumentNotFoundException, UnauthorizedDocumentAccess, AnalysisInProgressException
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+class AnalyzeRequest(BaseModel):
+    document_ids: List[str]
+
+
+@router.post("/analyze")
+async def start_analysis(
+    request: AnalyzeRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Triggers analysis on one or more documents.
+    All documents are analyzed together as a bundle (same property context).
+    """
+    if not request.document_ids:
+        raise HTTPException(status_code=400, detail="No document IDs provided.")
+    if len(request.document_ids) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 documents at once.")
+
+    # Verify all documents belong to user and exist
+    documents = []
+    for doc_id in request.document_ids:
+        doc_data = await firestore.get_document_entry(doc_id)
+        if not doc_data:
+            raise DocumentNotFoundException(doc_id)
+        if doc_data.get("user_id") != current_user.uid:
+            raise UnauthorizedDocumentAccess(doc_id)
+        documents.append(Document(**doc_data))
+
+    # Use the first document's state/district as context for all
+    state = ""
+    district = ""
+    for doc in documents:
+        if doc.state:
+            state = doc.state
+        if doc.district:
+            district = doc.district
+        if state and district:
+            break
+
+    # Start analysis for each document
+    orchestrator = OrchestratorAgent()
+    for doc in documents:
+        asyncio.create_task(orchestrator.start_analysis(
+            document_id=doc.id,
+            state_override=state,
+            district_override=district,
+        ))
+        logger.info(f"Analysis triggered for document {doc.id} (state={state}, district={district}).")
+
+    return {"message": f"Analysis started for {len(documents)} document(s).", "document_ids": request.document_ids}
 
 @router.get("/stream/{document_id}", response_class=EventSourceResponse)
 async def stream_analysis_progress(
