@@ -32,7 +32,7 @@ USER landguard
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:8000/api/v1/health || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')" || exit 1
 
 # Start with Gunicorn using Uvicorn workers
 CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "app.main:app", "--workers", "2", "--timeout", "300", "--graceful-timeout", "300"]
