@@ -7,6 +7,8 @@ from app.models.document import DocumentStatus, Document
 from app.services import firestore # Assuming Firestore for document state
 from app.models.analysis import ExtractedData, LegalFinding, FraudFinding, AnalysisReport
 import asyncio
+import json
+from datetime import datetime
 
 class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
     """
@@ -62,9 +64,10 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
             analysis_report = await self.report_agent.run(report_input, document_id)
 
             # 6. Save final report and update document status to COMPLETED
-            await firestore.save_analysis_report(document_id, analysis_report.dict())
+            report_dict = json.loads(analysis_report.model_dump_json())
+            await firestore.save_analysis_report(document_id, report_dict)
             await firestore.update_document_status(document_id, DocumentStatus.COMPLETED)
-            await self._update_progress(document_id, "Analysis workflow completed successfully.", 100, "analysis_completed", data=analysis_report.dict())
+            await self._update_progress(document_id, "Analysis workflow completed successfully.", 100, "analysis_completed", data=report_dict)
 
             return analysis_report
 

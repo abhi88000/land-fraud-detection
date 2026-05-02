@@ -5,7 +5,7 @@ from app.models.analysis import AnalysisReport, ExtractedData, LegalFinding, Fra
 
 class AnalysisProgressEvent(BaseModel):
     event_type: str # e.g., "document_parsed", "legal_check_completed", "fraud_detected", "report_ready"
-    data: Dict[str, Any] # Payload specific to the event type (e.g., ExtractedData, List[LegalFinding])
+    data: Any = None # Payload specific to the event type (can be dict, list, or None)
     message: str
     progress: int # Percentage progress (0-100)
     timestamp: str # ISO formatted timestamp

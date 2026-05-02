@@ -31,7 +31,7 @@ class ExtractedData(BaseModel):
     document_type: Optional[str] = None # e.g., "Sale Deed", "Gift Deed"
     party_names: List[Party] = Field(default_factory=list)
     property_details: Optional[PropertyDetails] = None
-    dates: Dict[str, str] = Field(default_factory=dict) # e.g., {"execution_date": "2023-01-15", "registration_date": "2023-01-20"}
+    dates: Dict[str, Any] = Field(default_factory=dict) # e.g., {"execution_date": "2023-01-15", "registration_date": "2023-01-20"}
     registration_info: Optional[RegistrationInfo] = None
     stamp_duty_amount: Optional[str] = None
     signatures_present: Optional[bool] = None

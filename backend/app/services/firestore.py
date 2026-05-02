@@ -10,6 +10,17 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+
+def _convert_timestamps(obj):
+    """Recursively convert Firestore Timestamp objects to ISO strings."""
+    if isinstance(obj, dict):
+        return {k: _convert_timestamps(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_convert_timestamps(item) for item in obj]
+    elif hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    return obj
+
 class MockFirestoreService:
     def __init__(self):
         logger.info("Initializing Mock Firestore Service")
@@ -100,12 +111,7 @@ class FirestoreService:
             if doc.exists:
                 doc_dict = doc.to_dict()
                 doc_dict["id"] = doc.id
-                # Convert Firestore Timestamps to ISO strings
-                for key in ("created_at", "updated_at"):
-                    val = doc_dict.get(key)
-                    if val and hasattr(val, 'isoformat'):
-                        doc_dict[key] = val.isoformat()
-                return doc_dict
+                return _convert_timestamps(doc_dict)
             return None
         except Exception as e:
             logger.error(f"Failed to get document entry {document_id} from Firestore: {e}")
@@ -149,12 +155,7 @@ class FirestoreService:
             async for doc in query.stream():
                 doc_dict = doc.to_dict()
                 doc_dict["id"] = doc.id
-                # Convert Firestore Timestamps to ISO strings for proper serialization
-                for key in ("created_at", "updated_at"):
-                    val = doc_dict.get(key)
-                    if val and hasattr(val, 'isoformat'):
-                        doc_dict[key] = val.isoformat()
-                all_docs.append(doc_dict)
+                all_docs.append(_convert_timestamps(doc_dict))
             
             if status:
                 all_docs = [d for d in all_docs if d.get("status") == status.value]
@@ -188,12 +189,7 @@ class FirestoreService:
             doc = await doc_ref.get()
             if doc.exists:
                 doc_dict = doc.to_dict()
-                # Convert any Firestore Timestamps to ISO strings
-                for key in ("generated_at", "created_at", "updated_at"):
-                    val = doc_dict.get(key)
-                    if val and hasattr(val, 'isoformat'):
-                        doc_dict[key] = val.isoformat()
-                return doc_dict
+                return _convert_timestamps(doc_dict)
             return None
         except Exception as e:
             logger.error(f"Failed to get analysis report for {document_id}: {e}")
@@ -207,7 +203,7 @@ class FirestoreService:
             docs = []
             async for doc in events_ref.stream():
                 doc_dict = doc.to_dict()
-                docs.append(doc_dict)
+                docs.append(_convert_timestamps(doc_dict))
             # Sort by timestamp in memory
             docs.sort(key=lambda x: x.get("timestamp", ""))
             if since_timestamp:

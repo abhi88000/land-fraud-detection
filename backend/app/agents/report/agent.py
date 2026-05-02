@@ -4,6 +4,7 @@ from app.models.analysis import ExtractedData, LegalFinding, FraudFinding, RiskS
 from app.models.document import DocumentStatus
 from datetime import datetime
 from pydantic import BaseModel
+import json
 
 class ReportInput(BaseModel):
     document_id: str
@@ -115,5 +116,5 @@ class ReportGeneratorAgent(BaseAgent[ReportInput, AnalysisReport]):
             generated_at=datetime.utcnow()
         )
 
-        await self._update_progress(document_id, "Analysis report generated.", 95, "report_generated", data=report.dict())
+        await self._update_progress(document_id, "Analysis report generated.", 95, "report_generated", data=json.loads(report.model_dump_json()))
         return report

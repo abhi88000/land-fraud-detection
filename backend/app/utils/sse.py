@@ -2,6 +2,17 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
+
+def _default_serializer(obj):
+    """JSON serializer for objects not serializable by default json code."""
+    if isinstance(obj, datetime):
+        return obj.isoformat() + "Z" if not obj.tzinfo else obj.isoformat()
+    if hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    if hasattr(obj, 'value'):  # Handle enums
+        return obj.value
+    return str(obj)
+
 async def send_sse_message(document_id: str, event_type: str, message: str, progress: int, data: Optional[Dict[str, Any]] = None):
     """
     Sends a Server-Sent Event message. In a real application, this would
@@ -39,4 +50,4 @@ def generate_sse_event(event: str, data: Dict[str, Any], message: str, progress:
         "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
         "data": data
     }
-    return f"event: {event}\ndata: {json.dumps(payload)}\n\n"
+    return f"event: {event}\ndata: {json.dumps(payload, default=_default_serializer)}\n\n"
