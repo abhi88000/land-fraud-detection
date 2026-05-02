@@ -29,7 +29,7 @@ class GCSService:
         self.bucket_name = settings.GCS_BUCKET_NAME
         try:
             self.client = storage.Client(project=settings.GCP_PROJECT_ID)
-            self.bucket = self.client.get_bucket(self.bucket_name)
+            self.bucket = self.client.bucket(self.bucket_name)
             self.is_mock = False
         except Exception as e:
             logger.warning(f"Failed to initialize real GCS, falling back to mock: {e}")

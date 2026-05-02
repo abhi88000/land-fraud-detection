@@ -81,7 +81,7 @@ class DocumentParserAgent(BaseAgent[str, ExtractedData]):
                         role="user",
                         parts=[
                             types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
-                            types.Part.from_text("Extract all information from this Indian land document as structured JSON."),
+                            types.Part.from_text(text="Extract all information from this Indian land document as structured JSON."),
                         ],
                     )
                 ],

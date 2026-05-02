@@ -56,7 +56,7 @@ class LegalRulesAgent(BaseAgent[ExtractedData, List[LegalFinding]]):
                         role="user",
                         parts=[
                             types.Part.from_text(
-                                f"Analyze this extracted land document data for legal compliance:\n\n{json.dumps(extracted_data.dict(), indent=2, default=str)}"
+                                text=f"Analyze this extracted land document data for legal compliance:\n\n{json.dumps(extracted_data.dict(), indent=2, default=str)}"
                             ),
                         ],
                     )

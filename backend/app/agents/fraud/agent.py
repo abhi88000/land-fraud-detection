@@ -70,7 +70,7 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
                 contents=[
                     types.Content(
                         role="user",
-                        parts=[types.Part.from_text(prompt_text)],
+                        parts=[types.Part.from_text(text=prompt_text)],
                     )
                 ],
                 config=types.GenerateContentConfig(
