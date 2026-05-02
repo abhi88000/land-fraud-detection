@@ -27,8 +27,14 @@ async def force_https_scheme(request: Request, call_next):
         request.scope["scheme"] = "https"
     return await call_next(request)
 
-# CORS - allow configured origins or default dev origins
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8080").split(",")
+# CORS - allow configured origins, Cloud Run URLs, and dev origins
+default_origins = (
+    "http://localhost:3000,http://localhost:8080,"
+    "https://land-guard-web-593405835352.us-central1.run.app,"
+    "https://land-guard-web-uvgzgnof7a-uc.a.run.app"
+)
+cors_origins = os.getenv("CORS_ORIGINS", default_origins).split(",")
+cors_origins = [o.strip() for o in cors_origins if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
