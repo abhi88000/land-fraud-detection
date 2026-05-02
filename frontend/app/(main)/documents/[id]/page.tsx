@@ -62,10 +62,29 @@ export default function DocumentAnalysisPage() {
       }
     };
 
-    eventSourceRef.current.onerror = (err) => {
+    eventSourceRef.current.onerror = async (err) => {
       console.error('EventSource failed:', err);
       eventSourceRef.current?.close();
-      setError('Failed to connect to analysis stream or stream ended unexpectedly.');
+      // Fallback: try fetching report directly (stream may have dropped after completion)
+      try {
+        const t = await user?.getIdToken();
+        const report = await fetchAnalysisReport(documentId!, t);
+        if (report?.report) {
+          setAnalysisReport(report.report);
+          setAnalysisProgress(100);
+          setAnalysisMessage('Analysis completed.');
+          return;
+        }
+      } catch (e) {
+        // Report not ready yet
+      }
+      // Only set error if we still don't have a report
+      setAnalysisReport((current) => {
+        if (!current) {
+          setError('Failed to connect to analysis stream or stream ended unexpectedly.');
+        }
+        return current;
+      });
     };
 
     eventSourceRef.current.onopen = () => {
