@@ -21,8 +21,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import WarningIcon from '@mui/icons-material/Warning';
 import GavelIcon from '@mui/icons-material/Gavel';
 import SecurityIcon from '@mui/icons-material/Security';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import { AnalysisReport, LegalFinding, FraudFinding, VerificationChecklistItem } from '@/lib/types';
+import { AnalysisReport, LegalFinding, FraudFinding } from '@/lib/types';
 
 interface ReportDisplayProps {
   report: AnalysisReport;
@@ -203,9 +202,6 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
           <Typography variant="body2" sx={{ color: '#3c4043' }}>
             <strong>{nonCompliantCount}</strong> item{nonCompliantCount !== 1 ? 's' : ''} worth checking
           </Typography>
-          <Typography variant="body2" sx={{ color: '#3c4043' }}>
-            <strong>{report.verification_checklist?.filter(v => v.is_checked).length || 0}</strong>/{report.verification_checklist?.length || 0} checks passed
-          </Typography>
         </Box>
 
         <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', md: 'block' } }} />
@@ -322,41 +318,6 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
                     suggestion={f.recommendation}
                   />
                 ))}
-              </Box>
-            ))
-          )}
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Verification Checklist — simple compact list */}
-      <Accordion
-        disableGutters
-        elevation={0}
-        sx={{ border: '1px solid #e0e0e0', borderRadius: '8px !important', '&:before': { display: 'none' } }}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
-          <AssignmentIcon sx={{ mr: 1.5, color: '#1e8e3e', fontSize: 20 }} />
-          <Typography variant="body1" fontWeight={600} sx={{ color: '#202124' }}>
-            Verification Checklist
-          </Typography>
-          <Chip label={report.verification_checklist.length} size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#e6f4ea', color: '#1e8e3e' }} />
-        </AccordionSummary>
-        <AccordionDetails sx={{ px: 2, pt: 0, pb: 1 }}>
-          {report.verification_checklist.length === 0 ? (
-            <Typography variant="body2" sx={{ color: '#80868b' }}>No checklist items.</Typography>
-          ) : (
-            report.verification_checklist.map((item: VerificationChecklistItem, i: number) => (
-              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid #f1f3f4', '&:last-child': { borderBottom: 0 } }}>
-                {item.is_checked
-                  ? <CheckCircleIcon sx={{ fontSize: 18, color: '#1e8e3e' }} />
-                  : <CancelIcon sx={{ fontSize: 18, color: '#dadce0' }} />
-                }
-                <Box>
-                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.85rem' }}>{item.item}</Typography>
-                  {item.details && (
-                    <Typography variant="caption" sx={{ color: '#80868b' }}>{item.details}</Typography>
-                  )}
-                </Box>
               </Box>
             ))
           )}
