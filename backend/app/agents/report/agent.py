@@ -72,14 +72,15 @@ class ReportGeneratorAgent(BaseAgent[ReportInput, AnalysisReport]):
         )
 
         # 2. Generate Summary
-        summary_parts = [f"Analysis of '{input_data.extracted_data.document_type or 'document'}' (ID: {document_id})."]
+        summary_parts = [f"AI review of '{input_data.extracted_data.document_type or 'document'}'."]
         if risk_score.overall_score >= 70:
-            summary_parts.append("The document appears to have a low risk of issues.")
+            summary_parts.append("We found few areas that need attention. Your document looks mostly in order, but we recommend verifying the flagged items below.")
         elif risk_score.overall_score >= 40:
-            summary_parts.append("The document has some potential issues identified, warranting further review.")
+            summary_parts.append("We found some areas worth double-checking. This doesn't mean your document is invalid — please review the flagged items and verify with the relevant authorities.")
         else:
-            summary_parts.append("Significant risks and discrepancies were identified. Proceed with extreme caution.")
-        summary_parts.append(f"Overall Risk Score: {risk_score.overall_score}/100.")
+            summary_parts.append("We flagged several areas for your attention. We recommend consulting a property lawyer or visiting your sub-registrar office to verify these items before proceeding.")
+        summary_parts.append(f"Attention Score: {risk_score.overall_score}/100.")
+        summary_parts.append("Note: This is an AI-assisted review, not a legal opinion. Always verify with qualified professionals.")
         summary = " ".join(summary_parts)
 
         # 3. Create Verification Checklist

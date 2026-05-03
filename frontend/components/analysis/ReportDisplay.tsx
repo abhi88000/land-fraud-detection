@@ -58,9 +58,9 @@ const getSeverityTextColor = (severity: string): string => {
 };
 
 const getRiskLabel = (score: number): { label: string; color: 'error' | 'warning' | 'success' } => {
-  if (score >= 70) return { label: 'High Risk', color: 'error' };
-  if (score >= 40) return { label: 'Medium Risk', color: 'warning' };
-  return { label: 'Low Risk', color: 'success' };
+  if (score >= 70) return { label: 'Needs Attention', color: 'error' };
+  if (score >= 40) return { label: 'Worth Checking', color: 'warning' };
+  return { label: 'Looks Good', color: 'success' };
 };
 
 // Category grouping for findings
@@ -198,10 +198,10 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 140 }}>
           <Chip label={riskInfo.label} color={riskInfo.color} size="small" sx={{ fontWeight: 600, alignSelf: 'flex-start' }} />
           <Typography variant="body2" sx={{ color: '#3c4043' }}>
-            <strong>{suspiciousCount}</strong> fraud indicator{suspiciousCount !== 1 ? 's' : ''}
+            <strong>{suspiciousCount}</strong> area{suspiciousCount !== 1 ? 's' : ''} to verify
           </Typography>
           <Typography variant="body2" sx={{ color: '#3c4043' }}>
-            <strong>{nonCompliantCount}</strong> legal issue{nonCompliantCount !== 1 ? 's' : ''}
+            <strong>{nonCompliantCount}</strong> item{nonCompliantCount !== 1 ? 's' : ''} worth checking
           </Typography>
           <Typography variant="body2" sx={{ color: '#3c4043' }}>
             <strong>{report.verification_checklist?.filter(v => v.is_checked).length || 0}</strong>/{report.verification_checklist?.length || 0} checks passed
@@ -248,7 +248,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
         <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
           <GavelIcon sx={{ mr: 1.5, color: '#1a73e8', fontSize: 20 }} />
           <Typography variant="body1" fontWeight={600} sx={{ color: '#202124' }}>
-            Legal Findings
+            Legal Checks
           </Typography>
           <Chip label={report.legal_findings.length} size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#e8f0fe', color: '#1a73e8' }} />
         </AccordionSummary>
@@ -291,9 +291,9 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
         sx={{ border: '1px solid #e0e0e0', borderRadius: '8px !important', '&:before': { display: 'none' } }}
       >
         <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
-          <SecurityIcon sx={{ mr: 1.5, color: '#d93025', fontSize: 20 }} />
+          <SecurityIcon sx={{ mr: 1.5, color: '#e37400', fontSize: 20 }} />
           <Typography variant="body1" fontWeight={600} sx={{ color: '#202124' }}>
-            Fraud Indicators
+            Areas to Verify
           </Typography>
           <Chip label={report.fraud_findings.length} size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#fce8e6', color: '#d93025' }} />
         </AccordionSummary>
@@ -363,7 +363,12 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
         </AccordionDetails>
       </Accordion>
 
-      {/* Footer */}
+      {/* Disclaimer */}
+      <Box sx={{ p: 2, borderRadius: 2, bgcolor: '#f8f9fa', border: '1px solid #e8eaed' }}>
+        <Typography variant="caption" sx={{ color: '#5f6368', lineHeight: 1.6 }}>
+          ⚠️ <strong>Disclaimer:</strong> This is an AI-assisted review to help you identify areas worth verifying. It is NOT a legal opinion or certification. Your documents may be perfectly valid. Always consult a qualified property lawyer or visit your local sub-registrar office before making any decisions.
+        </Typography>
+      </Box>
       <Typography variant="caption" sx={{ color: '#80868b', textAlign: 'right' }}>
         Generated {new Date(report.generated_at).toLocaleString()}
       </Typography>

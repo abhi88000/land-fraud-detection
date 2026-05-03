@@ -17,8 +17,8 @@ Your task is to extract structured information from the uploaded land document i
 
 Extract the following information and return it as valid JSON:
 {
-    "document_type": "Sale Deed / Gift Deed / Encumbrance Certificate / Property Extract / Mutation Record / Power of Attorney / etc.",
-    "party_names": [{"name": "Full Name", "role": "Buyer/Seller/Witness/Donor/Donee"}],
+    "document_type": "Sale Deed / Gift Deed / Lease Deed / Exchange Deed / Agreement to Sell / Simple Mortgage Deed / Power of Attorney / Will / Encumbrance Certificate / Property Extract / Mutation Record / etc.",
+    "party_names": [{"name": "Full Name", "role": "Buyer/Seller/Witness/Donor/Donee/Lessor/Lessee/Mortgagor/Mortgagee/Testator/Beneficiary/Exchanging Party"}],
     "property_details": {
         "survey_numbers": ["list of survey numbers"],
         "plot_numbers": ["list of plot numbers"],

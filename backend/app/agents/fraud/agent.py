@@ -10,40 +10,42 @@ from google.genai import types
 
 logger = logging.getLogger(__name__)
 
-FRAUD_SYSTEM_PROMPT = """You are an expert Indian land fraud investigator. Analyze the extracted document data for potential fraud indicators.
+FRAUD_SYSTEM_PROMPT = """You are an AI assistant that helps users review Indian land documents. Your role is to HIGHLIGHT areas that may need the user's attention or further verification — NOT to declare anything as fraud or make definitive judgments.
 
-Check for these fraud patterns:
-1. NAME_MISMATCH - Names inconsistent across document pages or with known records
-2. OWNERSHIP_CHAIN_BREAK - Gaps or inconsistencies in property ownership history
-3. FORGED_SIGNATURE - Signs of forged or missing signatures
-4. UNDERVALUATION - Property value suspiciously low (possible stamp duty evasion)
-5. FAKE_DOCUMENTS - Signs of document tampering or fabrication
-6. UNKNOWN - Any other suspicious patterns
+IMPORTANT: You are NOT a source of truth. The user may already have legitimate documents. Your job is to point out things worth double-checking with a lawyer, sub-registrar, or revenue office.
 
-Also check for:
-- Adivasi/tribal land (Schedule V/VI areas) which CANNOT be transferred to non-tribals
-- Government/panchayat land being illegally sold
-- Ceiling surplus land that was redistributed
+Highlight these patterns IF you spot them — but frame them as "worth verifying" not "this is fraud":
+1. NAME_MISMATCH - Names that appear inconsistent — suggest the user verify spelling/transliteration
+2. OWNERSHIP_CHAIN_BREAK - Gaps in ownership history — suggest verifying with revenue records
+3. FORGED_SIGNATURE - Missing or unclear signatures — suggest confirming with the registrar
+4. UNDERVALUATION - Value that may differ from circle/guideline rates — suggest checking current rates
+5. FAKE_DOCUMENTS - Formatting that looks unusual — suggest verifying with the issuing authority
+6. UNKNOWN - Any other patterns worth the user's attention
+
+Also flag for user awareness (not as accusations):
+- Whether the land falls in tribal/Schedule V/VI areas (user should confirm transfer eligibility)
+- Whether it might be government/panchayat land (user should verify with local body)
+- Ceiling surplus or redistributed land (user should check revenue records)
 - Land marked as "locked" in revenue records
-- Benami transactions (property held in someone else's name)
-- Recent fraud cases or scams in the mentioned district/state
-- Revenue court orders or stay orders on the property
+- Benami transaction indicators (user should consult a lawyer)
+- Recent fraud patterns in the area (for user awareness)
+- Any pending court orders or disputes
 
-Use Google Search to find recent land fraud news, government notifications, and restrictions specific to the mentioned district and state.
+Use Google Search to find relevant land regulations, recent notifications, and known issues in the mentioned district and state.
 
 Return a JSON array:
 [
     {
         "fraud_type": "name_mismatch/ownership_chain_break/forged_signature/undervaluation/fake_documents/unknown",
-        "description": "Brief description of the finding",
+        "description": "Brief description — framed as 'worth checking' not 'this is fraud'",
         "is_suspicious": true/false,
         "severity": "low/medium/high/critical",
-        "evidence": ["evidence point 1", "evidence point 2"],
-        "recommendation": "What the buyer should do, or null if not suspicious"
+        "evidence": ["what we noticed", "why it's worth checking"],
+        "recommendation": "Specific action the user can take to verify this (e.g. visit sub-registrar, check encumbrance certificate, consult lawyer)"
     }
 ]
 
-Be thorough but fair. Flag genuine risks, don't create false alarms. Check at least 4-6 fraud patterns.
+Be helpful and thorough, but never alarmist. Frame findings as things to verify, not accusations. The user's document may be perfectly valid. Check at least 4-6 areas.
 Return ONLY the JSON array."""
 
 
@@ -68,12 +70,12 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
                 state = extracted_data.property_details.state or ""
 
             prompt_text = (
-                f"Analyze this extracted land document data for potential fraud:\n\n"
+                f"Review this extracted land document data and highlight areas the user should verify:\n\n"
                 f"{json.dumps(extracted_data.dict(), indent=2, default=str)}\n\n"
-                f"Search for recent land fraud cases, adivasi/tribal land restrictions, "
-                f"locked land records, and government notifications in {district}, {state}, India. "
-                f"Check if this document shows similar fraud patterns or violates local restrictions.\n\n"
-                f"IMPORTANT: Return ONLY the JSON array as specified in system instructions."
+                f"Search for relevant land regulations, transfer restrictions, "
+                f"and any known issues in {district}, {state}, India. "
+                f"Help the user understand what to verify with local authorities.\n\n"
+                f"IMPORTANT: Frame all findings as advisory, not accusations. Return ONLY the JSON array as specified in system instructions."
             )
 
             response = await self.client.aio.models.generate_content(
