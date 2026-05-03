@@ -144,6 +144,12 @@ const FindingRow: React.FC<{
 
 const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
   const riskInfo = getRiskLabel(report.risk_score.overall_score);
+  const score = report.risk_score.overall_score;
+
+  // SVG gauge
+  const gaugeColor = score >= 70 ? '#d93025' : score >= 40 ? '#e37400' : '#1e8e3e';
+  const circumference = 2 * Math.PI * 54;
+  const arcLength = (score / 100) * circumference * 0.75;
 
   // Group findings by category
   const legalByCategory: Record<string, LegalFinding[]> = {};
@@ -159,40 +165,66 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
     fraudByCategory[cat].push(f);
   }
 
+  const suspiciousCount = report.fraud_findings.filter(f => f.is_suspicious).length;
+  const nonCompliantCount = report.legal_findings.filter(f => !f.is_compliant).length;
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Risk Score — compact horizontal layout */}
+      {/* Risk Score — gauge + stats */}
       <Box sx={{
-        display: 'flex', alignItems: 'center', gap: 3, p: 3,
+        display: 'flex', alignItems: 'center', gap: 3, p: 3, flexWrap: 'wrap',
         borderRadius: 2, border: '1px solid #e0e0e0', bgcolor: '#fafafa',
       }}>
-        <Box sx={{ textAlign: 'center', minWidth: 80 }}>
-          <Typography variant="h3" fontWeight={700} color={`${riskInfo.color}.main`} lineHeight={1}>
-            {report.risk_score.overall_score}
-          </Typography>
-          <Typography variant="caption" sx={{ color: '#80868b' }}>/100</Typography>
-          <Box sx={{ mt: 0.5 }}>
-            <Chip label={riskInfo.label} color={riskInfo.color} size="small" sx={{ fontWeight: 600 }} />
+        {/* SVG Gauge */}
+        <Box sx={{ position: 'relative', width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width={120} height={120} viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f3f4" strokeWidth="8"
+              strokeDasharray={`${circumference * 0.75} ${circumference * 0.25}`}
+              transform="rotate(135 60 60)" strokeLinecap="round" />
+            <circle cx="60" cy="60" r="54" fill="none" stroke={gaugeColor} strokeWidth="8"
+              strokeDasharray={`${arcLength} ${circumference}`}
+              transform="rotate(135 60 60)" strokeLinecap="round"
+              style={{ transition: 'stroke-dasharray 1s ease' }} />
+          </svg>
+          <Box sx={{ position: 'absolute', textAlign: 'center' }}>
+            <Typography variant="h4" fontWeight={700} sx={{ color: gaugeColor, lineHeight: 1 }}>{score}</Typography>
+            <Typography variant="caption" sx={{ color: '#80868b' }}>/100</Typography>
           </Box>
         </Box>
 
-        <Divider orientation="vertical" flexItem />
+        <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
+
+        {/* Quick stats */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 140 }}>
+          <Chip label={riskInfo.label} color={riskInfo.color} size="small" sx={{ fontWeight: 600, alignSelf: 'flex-start' }} />
+          <Typography variant="body2" sx={{ color: '#3c4043' }}>
+            <strong>{suspiciousCount}</strong> fraud indicator{suspiciousCount !== 1 ? 's' : ''}
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#3c4043' }}>
+            <strong>{nonCompliantCount}</strong> legal issue{nonCompliantCount !== 1 ? 's' : ''}
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#3c4043' }}>
+            <strong>{report.verification_checklist?.filter(v => v.is_checked).length || 0}</strong>/{report.verification_checklist?.length || 0} checks passed
+          </Typography>
+        </Box>
+
+        <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', md: 'block' } }} />
 
         {/* Category bars */}
         {report.risk_score.category_scores && Object.keys(report.risk_score.category_scores).length > 0 && (
-          <Box sx={{ flex: 1 }}>
-            {Object.entries(report.risk_score.category_scores).map(([category, score]) => (
+          <Box sx={{ flex: 1, minWidth: 200 }}>
+            {Object.entries(report.risk_score.category_scores).map(([category, catScore]) => (
               <Box key={category} sx={{ mb: 0.75 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
                   <Typography variant="caption" sx={{ textTransform: 'capitalize', color: '#5f6368' }}>
                     {category.replace(/_/g, ' ')}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500 }}>{score}</Typography>
+                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500 }}>{catScore}</Typography>
                 </Box>
                 <LinearProgress
                   variant="determinate"
-                  value={score}
-                  color={getRiskLabel(score).color}
+                  value={catScore}
+                  color={getRiskLabel(catScore).color}
                   sx={{ height: 5, borderRadius: 3 }}
                 />
               </Box>
