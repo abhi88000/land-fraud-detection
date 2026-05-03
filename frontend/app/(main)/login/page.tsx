@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { Button, TextField, Box, Typography, Container, Alert, Divider } from '@mui/material';
+import { Button, TextField, Box, Typography, Alert, Divider, Paper } from '@mui/material';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth';
@@ -52,25 +52,37 @@ export default function LoginPage() {
   }
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <ShieldIcon sx={{ color: '#4285F4', fontSize: 32 }} />
-          <Typography variant="h5" fontWeight={700} sx={{ color: '#202124' }}>LandGuard</Typography>
+    <Box sx={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      bgcolor: '#fafafa', px: 2,
+    }}>
+      <Paper
+        elevation={0}
+        sx={{
+          maxWidth: 420, width: '100%', p: { xs: 3, sm: 5 },
+          borderRadius: '16px', border: '1px solid #e8eaed', bgcolor: 'white',
+        }}
+      >
+        {/* Header */}
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <Box sx={{
+              width: 32, height: 32, borderRadius: '10px',
+              background: 'linear-gradient(135deg, #4285F4, #7B61FF)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', fontSize: '16px', fontWeight: 700,
+            }}>L</Box>
+            <Typography variant="h5" fontWeight={700} sx={{ color: '#202124' }}>LandGuard</Typography>
+          </Box>
+          <Typography variant="body2" sx={{ color: '#5f6368' }}>Sign in to continue</Typography>
         </Box>
-        <Typography variant="body2" sx={{ color: '#5f6368', mb: 4 }}>Sign in to continue</Typography>
 
-        {/* Social Login Buttons */}
-        <Button
-          fullWidth
-          variant="outlined"
-          onClick={handleGoogleLogin}
-          sx={{
-            mb: 1.5, py: 1.3, borderRadius: '8px', textTransform: 'none', fontWeight: 500,
-            borderColor: '#dadce0', color: '#3c4043', fontSize: '0.9rem',
-            '&:hover': { bgcolor: '#f8f9fa', borderColor: '#d2d5d9' },
-          }}
-        >
+        {/* Social Buttons */}
+        <Button fullWidth variant="outlined" onClick={handleGoogleLogin} sx={{
+          mb: 1.5, py: 1.3, borderRadius: '100px', textTransform: 'none', fontWeight: 500,
+          borderColor: '#dadce0', color: '#3c4043', fontSize: '0.9rem',
+          '&:hover': { bgcolor: '#f8f9fa', borderColor: '#d2d5d9' },
+        }}>
           <svg width="18" height="18" viewBox="0 0 48 48" style={{ marginRight: 12 }}>
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
             <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -80,80 +92,42 @@ export default function LoginPage() {
           Continue with Google
         </Button>
 
-        <Button
-          fullWidth
-          variant="outlined"
-          onClick={handleAppleLogin}
-          sx={{
-            mb: 2, py: 1.3, borderRadius: '8px', textTransform: 'none', fontWeight: 500,
-            borderColor: '#dadce0', color: '#3c4043', fontSize: '0.9rem',
-            '&:hover': { bgcolor: '#f8f9fa', borderColor: '#d2d5d9' },
-          }}
-        >
+        <Button fullWidth variant="outlined" onClick={handleAppleLogin} sx={{
+          mb: 2.5, py: 1.3, borderRadius: '100px', textTransform: 'none', fontWeight: 500,
+          borderColor: '#dadce0', color: '#3c4043', fontSize: '0.9rem',
+          '&:hover': { bgcolor: '#f8f9fa', borderColor: '#d2d5d9' },
+        }}>
           <svg width="18" height="18" viewBox="0 0 24 24" style={{ marginRight: 12 }}>
             <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
           </svg>
           Continue with Apple
         </Button>
 
-        <Divider sx={{ width: '100%', mb: 2, color: '#80868b', fontSize: '0.8rem' }}>or</Divider>
+        <Divider sx={{ mb: 2.5, color: '#9aa0a6', fontSize: '0.75rem' }}>or sign in with email</Divider>
 
-        {/* Email/Password Form */}
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%' }}>
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="email"
-            label="Email Address"
-            name="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            size="small"
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Password"
-            type="password"
-            id="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            size="small"
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
-          />
-          {error && (
-            <Alert severity="error" sx={{ mt: 1, borderRadius: '8px' }}>
-              {error}
-            </Alert>
-          )}
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            disableElevation
-            sx={{
-              mt: 2, mb: 2, py: 1.2, borderRadius: '8px', textTransform: 'none',
-              fontWeight: 600, bgcolor: '#1a73e8', '&:hover': { bgcolor: '#1765cc' },
-            }}
-          >
+        {/* Form */}
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField margin="normal" required fullWidth id="email" label="Email Address" name="email"
+            autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} size="small"
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+          <TextField margin="normal" required fullWidth name="password" label="Password" type="password"
+            id="password" autoComplete="current-password" value={password}
+            onChange={(e) => setPassword(e.target.value)} size="small"
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+          {error && <Alert severity="error" sx={{ mt: 1, borderRadius: '10px' }}>{error}</Alert>}
+          <Button type="submit" fullWidth variant="contained" disableElevation sx={{
+            mt: 2.5, mb: 2, py: 1.3, borderRadius: '100px', textTransform: 'none',
+            fontWeight: 600, fontSize: '0.9rem', bgcolor: '#202124',
+            '&:hover': { bgcolor: '#303134' },
+          }}>
             Sign In
           </Button>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="body2" sx={{ color: '#5f6368' }}>
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" style={{ color: '#1a73e8', textDecoration: 'none', fontWeight: 500 }}>
-                Sign Up
-              </Link>
-            </Typography>
-          </Box>
+          <Typography variant="body2" sx={{ color: '#5f6368', textAlign: 'center' }}>
+            Don&apos;t have an account?{' '}
+            <Link href="/signup" style={{ color: '#1a73e8', textDecoration: 'none', fontWeight: 600 }}>Sign Up</Link>
+          </Typography>
         </Box>
-      </Box>
-    </Container>
+      </Paper>
+    </Box>
   );
 }

@@ -396,81 +396,11 @@ export default function HomePage() {
         </Box>
       </Box>
 
-      {/* ═══════════════ STATS ═══════════════ */}
-      <Box sx={{ py: { xs: 8, md: 12 }, px: 3, bgcolor: 'white' }}>
-        <Box sx={{ maxWidth: 700, mx: 'auto' }}>
-          <RevealOnScroll>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 4, textAlign: 'center' }}>
-              {[
-                { value: '₹1,000+ Cr', label: 'Lost to fraud yearly' },
-                { value: '66%', label: 'Court cases are land disputes' },
-                { value: '4', label: 'AI agents in parallel' },
-                { value: '6+', label: 'Languages supported' },
-              ].map((stat, idx) => (
-                <Box key={idx}>
-                  <Typography sx={{ fontSize: { xs: '1.5rem', md: '2rem' }, fontWeight: 700, color: '#202124' }}>
-                    {stat.value}
-                  </Typography>
-                  <Typography sx={{ color: '#5f6368', fontSize: '0.8rem', mt: 0.5 }}>
-                    {stat.label}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </RevealOnScroll>
-        </Box>
-      </Box>
-
-      {/* ═══════════════ CTA ═══════════════ */}
-      <Box sx={{ py: { xs: 10, md: 14 }, px: 3, bgcolor: '#fafafa' }}>
-        <RevealOnScroll>
-          <Box sx={{ textAlign: 'center', maxWidth: 500, mx: 'auto' }}>
-            <Typography sx={{ fontSize: { xs: '1.5rem', md: '2rem' }, fontWeight: 700, color: '#202124', mb: 2 }}>
-              Don&apos;t risk your life savings
-            </Typography>
-            <Typography sx={{ color: '#5f6368', mb: 4, fontSize: '1rem' }}>
-              Verify land documents with AI before you sign.
-            </Typography>
-            {showDashboard ? (
-              <Button
-                size="large"
-                onClick={() => router.push('/dashboard')}
-                sx={{
-                  px: 5, py: 1.6,
-                  background: '#202124',
-                  color: 'white',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  borderRadius: '100px',
-                  textTransform: 'none',
-                  '&:hover': { background: '#303134' },
-                }}
-              >
-                Open Dashboard
-              </Button>
-            ) : !loading && (
-              <Button
-                size="large"
-                onClick={() => router.push('/login')}
-                sx={{
-                  px: 5, py: 1.6,
-                  background: '#202124',
-                  color: 'white',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  borderRadius: '100px',
-                  textTransform: 'none',
-                  '&:hover': { background: '#303134' },
-                }}
-              >
-                Start Protecting Now
-              </Button>
-            )}
-            <Typography sx={{ mt: 5, color: '#9aa0a6', fontSize: '0.75rem' }}>
-              Powered by Google Gemini 2.5 &middot; Vertex AI &middot; Cloud Run
-            </Typography>
-          </Box>
-        </RevealOnScroll>
+      {/* ═══════════════ FOOTER ═══════════════ */}
+      <Box sx={{ py: 4, px: 3, bgcolor: 'white', textAlign: 'center' }}>
+        <Typography sx={{ color: '#9aa0a6', fontSize: '0.75rem' }}>
+          Built with Google Gemini 2.5 &middot; Vertex AI &middot; Cloud Run &middot; BigQuery &middot; Pub/Sub
+        </Typography>
       </Box>
     </Box>
   );
