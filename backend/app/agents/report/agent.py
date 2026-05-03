@@ -71,16 +71,30 @@ class ReportGeneratorAgent(BaseAgent[ReportInput, AnalysisReport]):
             }
         )
 
-        # 2. Generate Summary
-        summary_parts = [f"AI review of '{input_data.extracted_data.document_type or 'document'}'."]
-        if risk_score.overall_score >= 70:
-            summary_parts.append("We found few areas that need attention. Your document looks mostly in order, but we recommend verifying the flagged items below.")
-        elif risk_score.overall_score >= 40:
-            summary_parts.append("We found some areas worth double-checking. This doesn't mean your document is invalid — please review the flagged items and verify with the relevant authorities.")
+        # 2. Generate Summary — purely advisory, no score mention
+        location_info = ""
+        if extracted_data.property_details:
+            parts = []
+            if extracted_data.property_details.district:
+                parts.append(extracted_data.property_details.district)
+            if extracted_data.property_details.state:
+                parts.append(extracted_data.property_details.state)
+            if parts:
+                location_info = f" in {', '.join(parts)}"
+
+        summary_parts = [f"AI review of '{input_data.extracted_data.document_type or 'document'}'{location_info}."]
+
+        # Count actionable findings
+        issues_count = sum(1 for f in legal_findings if not f.is_compliant) + sum(1 for f in fraud_findings if f.is_suspicious)
+        
+        if issues_count == 0:
+            summary_parts.append("We did not find any major areas of concern. Your document appears to be in order based on the information provided.")
+        elif issues_count <= 3:
+            summary_parts.append(f"We found {issues_count} area{'s' if issues_count > 1 else ''} worth verifying. Please review the details below and consider checking with your local sub-registrar or a property lawyer.")
         else:
-            summary_parts.append("We flagged several areas for your attention. We recommend consulting a property lawyer or visiting your sub-registrar office to verify these items before proceeding.")
-        summary_parts.append(f"Attention Score: {risk_score.overall_score}/100.")
-        summary_parts.append("Note: This is an AI-assisted review, not a legal opinion. Always verify with qualified professionals.")
+            summary_parts.append(f"We flagged {issues_count} areas for your attention. We recommend consulting a property lawyer or visiting your sub-registrar office to verify these items.")
+        
+        summary_parts.append("Note: This is an AI-assisted review meant to highlight areas for verification — not a legal opinion.")
         summary = " ".join(summary_parts)
 
         # 3. Create Verification Checklist

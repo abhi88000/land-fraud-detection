@@ -15,6 +15,10 @@ PARSER_SYSTEM_PROMPT = """You are an expert Indian land document analyst. You ca
 
 Your task is to extract structured information from the uploaded land document image/PDF.
 
+CRITICAL: "state" and "district" are MANDATORY fields. If they are not explicitly mentioned in the document, infer them from any available clues — sub-registrar office name, address, language of the document, stamp paper details, or any other context. If you absolutely cannot determine them, set them to "Unknown" but NEVER leave them as null.
+
+Valid Indian states and UTs: Andhra Pradesh, Arunachal Pradesh, Assam, Bihar, Chhattisgarh, Goa, Gujarat, Haryana, Himachal Pradesh, Jharkhand, Karnataka, Kerala, Madhya Pradesh, Maharashtra, Manipur, Meghalaya, Mizoram, Nagaland, Odisha, Punjab, Rajasthan, Sikkim, Tamil Nadu, Telangana, Tripura, Uttar Pradesh, Uttarakhand, West Bengal, Andaman and Nicobar Islands, Chandigarh, Dadra and Nagar Haveli and Daman and Diu, Delhi, Jammu and Kashmir, Ladakh, Lakshadweep, Puducherry.
+
 Extract the following information and return it as valid JSON:
 {
     "document_type": "Sale Deed / Gift Deed / Lease Deed / Exchange Deed / Agreement to Sell / Simple Mortgage Deed / Power of Attorney / Will / Encumbrance Certificate / Property Extract / Mutation Record / etc.",
@@ -26,8 +30,8 @@ Extract the following information and return it as valid JSON:
         "unit": "sq ft / sq m / acres / hectares / guntha / bigha etc.",
         "address": "full address",
         "city": "city/town/village",
-        "district": "district name",
-        "state": "state name",
+        "district": "district name (REQUIRED - infer if not explicit)",
+        "state": "state or UT name (REQUIRED - infer if not explicit)",
         "country": "India"
     },
     "dates": {"execution_date": "YYYY-MM-DD", "registration_date": "YYYY-MM-DD"},
@@ -44,7 +48,7 @@ Extract the following information and return it as valid JSON:
     "document_language": "Hindi/English/Tamil/Kannada/Telugu/Marathi/etc."
 }
 
-If any field cannot be determined from the document, set it to null.
+If any field cannot be determined from the document, set it to null — EXCEPT state and district which must always have a value.
 Return ONLY the JSON object, no other text."""
 
 

@@ -19,13 +19,16 @@ import { uploadDocument } from '@/lib/api';
 import { useAuth } from '@/lib/firebase/auth';
 
 const INDIAN_STATES = [
+  // States
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
   'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
   'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
   'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
   'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
   'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
-  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Chandigarh', 'Puducherry',
+  // Union Territories
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
 ];
 
 interface UploadDocumentDialogProps {
@@ -66,6 +69,10 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
 
   const handleUpload = async () => {
     if (files.length === 0) return;
+    if (!state.trim() || !district.trim()) {
+      setError('State and District are required for accurate analysis');
+      return;
+    }
 
     setUploading(true);
     setError(null);
@@ -115,13 +122,13 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
             value={state}
             onInputChange={(_, val) => setState(val)}
             renderInput={(params) => (
-              <TextField {...params} label="State" size="small" placeholder="e.g. Maharashtra"
+              <TextField {...params} label="State *" size="small" placeholder="e.g. Maharashtra"
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
             )}
             sx={{ flex: 1 }}
           />
           <TextField
-            label="District"
+            label="District *"
             size="small"
             value={district}
             onChange={(e) => setDistrict(e.target.value)}
@@ -207,7 +214,7 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
           <Button
             onClick={handleUpload}
             variant="contained"
-            disabled={files.length === 0 || uploading}
+            disabled={files.length === 0 || uploading || !state.trim() || !district.trim()}
             disableElevation
             sx={{
               borderRadius: '100px', textTransform: 'none', fontWeight: 600, px: 3,

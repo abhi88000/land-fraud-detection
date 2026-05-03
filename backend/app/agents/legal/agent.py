@@ -23,6 +23,19 @@ Check these areas and flag anything the user should verify:
 6. Agricultural land transfer restrictions
 7. Government/panchayat/tribal/ceiling land restrictions
 
+CRITICAL — State and District specific checks:
+- If the property is in a Scheduled Tribe area, flag specific tribal land protection acts for that state (e.g., AP Scheduled Areas Land Transfer Regulation 1959, Chotanagpur Tenancy Act for Jharkhand/Bihar).
+- If in J&K or Ladakh — flag special provisions on non-resident land ownership post Article 370.
+- If in Northeast states — flag customary law, Inner Line Permit areas, Sixth Schedule protections.
+- If agricultural land — flag whether state requires agricultural income certificate or permission for non-agriculturist buyers.
+- If near a tribunal/court jurisdiction — flag any known land tribunals operating in that district.
+
+ALSO — What additional documents should the user obtain:
+- Based on the document type and state, suggest which supporting documents are needed for complete verification
+- Example: "In Maharashtra, you should also obtain the 7/12 extract and mutation entry to confirm current ownership"
+- Example: "For tribal area transactions, an NOC from the District Collector or Tribal Welfare Officer is typically required"
+- Be specific to the state/district — don't give generic advice
+
 For each check, return a JSON array:
 [
     {

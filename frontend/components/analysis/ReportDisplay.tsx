@@ -5,8 +5,6 @@ import {
   Box,
   Typography,
   Chip,
-  Divider,
-  LinearProgress,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -21,26 +19,17 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import WarningIcon from '@mui/icons-material/Warning';
 import GavelIcon from '@mui/icons-material/Gavel';
 import SecurityIcon from '@mui/icons-material/Security';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import PlaceIcon from '@mui/icons-material/Place';
 import { AnalysisReport, LegalFinding, FraudFinding } from '@/lib/types';
 
 interface ReportDisplayProps {
   report: AnalysisReport;
 }
 
-const getSeverityColor = (severity: string): 'error' | 'warning' | 'info' | 'success' => {
-  switch (severity) {
-    case 'critical': return 'error';
-    case 'high': return 'error';
-    case 'medium': return 'warning';
-    case 'low': return 'info';
-    default: return 'info';
-  }
-};
-
 const getSeverityBg = (severity: string): string => {
   switch (severity) {
-    case 'critical': return '#fce8e6';
-    case 'high': return '#fce8e6';
+    case 'critical': case 'high': return '#fce8e6';
     case 'medium': return '#fef7e0';
     case 'low': return '#e8f0fe';
     default: return '#f1f3f4';
@@ -56,30 +45,7 @@ const getSeverityTextColor = (severity: string): string => {
   }
 };
 
-const getRiskLabel = (score: number): { label: string; color: 'error' | 'warning' | 'success' } => {
-  if (score >= 70) return { label: 'Needs Attention', color: 'error' };
-  if (score >= 40) return { label: 'Worth Checking', color: 'warning' };
-  return { label: 'Looks Good', color: 'success' };
-};
-
-// Category grouping for findings
-const FINDING_CATEGORIES: Record<string, string[]> = {
-  'Pricing & Valuation': ['price', 'valuation', 'overpriced', 'undervalued', 'market value', 'circle rate', 'stamp duty', 'consideration'],
-  'Identity & Ownership': ['benami', 'identity', 'impersonation', 'ownership', 'title', 'age', 'student', 'occupation'],
-  'Document Authenticity': ['forged', 'fabricated', 'tampered', 'signature', 'registration', 'unregistered', 'stamp paper'],
-  'Land Use & Restrictions': ['tribal', 'agricultural', 'conversion', 'scheduled tribe', 'government land', 'roshni', 'forest', 'ceiling'],
-  'Legal Compliance': ['compliance', 'act', 'section', 'regulation', 'mandatory', 'required', 'violation'],
-};
-
-function categorizeFinding(description: string): string {
-  const lower = description.toLowerCase();
-  for (const [category, keywords] of Object.entries(FINDING_CATEGORIES)) {
-    if (keywords.some(kw => lower.includes(kw))) return category;
-  }
-  return 'Other Findings';
-}
-
-/* Expandable finding row — keeps the list compact */
+/* Expandable finding row */
 const FindingRow: React.FC<{
   icon: React.ReactNode;
   title: string;
@@ -131,7 +97,7 @@ const FindingRow: React.FC<{
             )}
             {suggestion && (
               <Typography variant="body2" sx={{ color: '#1a73e8', fontSize: '0.8rem', mt: 0.5 }}>
-                {suggestion}
+                💡 {suggestion}
               </Typography>
             )}
           </Box>
@@ -142,109 +108,153 @@ const FindingRow: React.FC<{
 };
 
 const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
-  const riskInfo = getRiskLabel(report.risk_score.overall_score);
-  const score = report.risk_score.overall_score;
+  const suspiciousFindings = report.fraud_findings.filter(f => f.is_suspicious);
+  const nonCompliantFindings = report.legal_findings.filter(f => !f.is_compliant);
+  const totalIssues = suspiciousFindings.length + nonCompliantFindings.length;
 
-  // SVG gauge
-  const gaugeColor = score >= 70 ? '#d93025' : score >= 40 ? '#e37400' : '#1e8e3e';
-  const circumference = 2 * Math.PI * 54;
-  const arcLength = (score / 100) * circumference * 0.75;
+  // Extract location info
+  const state = report.extracted_data?.property_details?.state;
+  const district = report.extracted_data?.property_details?.district;
+  const location = [district, state].filter(Boolean).join(', ');
 
-  // Group findings by category
-  const legalByCategory: Record<string, LegalFinding[]> = {};
-  for (const f of report.legal_findings) {
-    const cat = categorizeFinding(f.description);
-    if (!legalByCategory[cat]) legalByCategory[cat] = [];
-    legalByCategory[cat].push(f);
+  // Separate "missing documents" recommendations from other findings
+  const missingDocKeywords = ['obtain', 'get', 'collect', 'encumbrance', 'mutation', 'NOC', '7/12', 'khata', 'patta', 'RTC', 'extract', 'certificate'];
+  const missingDocSuggestions: string[] = [];
+
+  for (const f of [...report.fraud_findings, ...report.legal_findings]) {
+    const rec = ('recommendation' in f ? f.recommendation : ('remediation_suggestion' in f ? f.remediation_suggestion : null)) as string | null;
+    if (rec && missingDocKeywords.some(kw => rec.toLowerCase().includes(kw.toLowerCase()))) {
+      if (!missingDocSuggestions.includes(rec)) {
+        missingDocSuggestions.push(rec);
+      }
+    }
   }
-  const fraudByCategory: Record<string, FraudFinding[]> = {};
+
+  // Area-specific findings (tribal, scheduled, UT, forest, agricultural, etc.)
+  const areaKeywords = ['tribal', 'adivasi', 'scheduled', 'schedule v', 'schedule vi', 'forest', 'agricultural', 'ceiling', 'roshni', 'non-resident', 'inner line', 'sixth schedule', 'pesa', 'customary', 'tribunal'];
+  const areaFindings: { text: string; severity: string }[] = [];
+
   for (const f of report.fraud_findings) {
-    const cat = categorizeFinding(f.description);
-    if (!fraudByCategory[cat]) fraudByCategory[cat] = [];
-    fraudByCategory[cat].push(f);
+    if (areaKeywords.some(kw => f.description.toLowerCase().includes(kw) || (f.evidence || []).some(e => e.toLowerCase().includes(kw)))) {
+      areaFindings.push({ text: f.description, severity: f.severity });
+    }
   }
-
-  const suspiciousCount = report.fraud_findings.filter(f => f.is_suspicious).length;
-  const nonCompliantCount = report.legal_findings.filter(f => !f.is_compliant).length;
+  for (const f of report.legal_findings) {
+    if (areaKeywords.some(kw => f.description.toLowerCase().includes(kw) || f.explanation.toLowerCase().includes(kw))) {
+      areaFindings.push({ text: f.description, severity: f.severity });
+    }
+  }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Risk Score — gauge + stats */}
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+
+      {/* Advisory header — no score, just status */}
       <Box sx={{
-        display: 'flex', alignItems: 'center', gap: 3, p: 3, flexWrap: 'wrap',
-        borderRadius: 2, border: '1px solid #e0e0e0', bgcolor: '#fafafa',
+        p: 2.5, borderRadius: '12px',
+        bgcolor: totalIssues === 0 ? '#e6f4ea' : totalIssues <= 3 ? '#fffbe6' : '#fce8e6',
+        border: `1px solid ${totalIssues === 0 ? '#b7e1cd' : totalIssues <= 3 ? '#fde293' : '#f5c6cb'}`,
       }}>
-        {/* SVG Gauge */}
-        <Box sx={{ position: 'relative', width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width={120} height={120} viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f3f4" strokeWidth="8"
-              strokeDasharray={`${circumference * 0.75} ${circumference * 0.25}`}
-              transform="rotate(135 60 60)" strokeLinecap="round" />
-            <circle cx="60" cy="60" r="54" fill="none" stroke={gaugeColor} strokeWidth="8"
-              strokeDasharray={`${arcLength} ${circumference}`}
-              transform="rotate(135 60 60)" strokeLinecap="round"
-              style={{ transition: 'stroke-dasharray 1s ease' }} />
-          </svg>
-          <Box sx={{ position: 'absolute', textAlign: 'center' }}>
-            <Typography variant="h4" fontWeight={700} sx={{ color: gaugeColor, lineHeight: 1 }}>{score}</Typography>
-            <Typography variant="caption" sx={{ color: '#80868b' }}>/100</Typography>
-          </Box>
-        </Box>
-
-        <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
-
-        {/* Quick stats */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 140 }}>
-          <Chip label={riskInfo.label} color={riskInfo.color} size="small" sx={{ fontWeight: 600, alignSelf: 'flex-start' }} />
-          <Typography variant="body2" sx={{ color: '#3c4043' }}>
-            <strong>{suspiciousCount}</strong> area{suspiciousCount !== 1 ? 's' : ''} to verify
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#3c4043' }}>
-            <strong>{nonCompliantCount}</strong> item{nonCompliantCount !== 1 ? 's' : ''} worth checking
-          </Typography>
-        </Box>
-
-        <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', md: 'block' } }} />
-
-        {/* Category bars */}
-        {report.risk_score.category_scores && Object.keys(report.risk_score.category_scores).length > 0 && (
-          <Box sx={{ flex: 1, minWidth: 200 }}>
-            {Object.entries(report.risk_score.category_scores).map(([category, catScore]) => (
-              <Box key={category} sx={{ mb: 0.75 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                  <Typography variant="caption" sx={{ textTransform: 'capitalize', color: '#5f6368' }}>
-                    {category.replace(/_/g, ' ')}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500 }}>{catScore}</Typography>
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={catScore}
-                  color={getRiskLabel(catScore).color}
-                  sx={{ height: 5, borderRadius: 3 }}
-                />
-              </Box>
-            ))}
+        <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: '#202124', mb: 0.5 }}>
+          {totalIssues === 0
+            ? '✓ No major concerns found'
+            : totalIssues <= 3
+              ? `⚠️ ${totalIssues} area${totalIssues > 1 ? 's' : ''} worth verifying`
+              : `⚠️ ${totalIssues} areas flagged for your attention`
+          }
+        </Typography>
+        {location && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+            <PlaceIcon sx={{ fontSize: 14, color: '#5f6368' }} />
+            <Typography variant="caption" sx={{ color: '#5f6368' }}>{location}</Typography>
           </Box>
         )}
+        <Typography variant="body2" sx={{ color: '#3c4043', lineHeight: 1.7 }}>
+          {report.summary}
+        </Typography>
       </Box>
 
-      {/* Summary */}
-      <Typography variant="body2" sx={{ color: '#3c4043', lineHeight: 1.7 }}>
-        {report.summary}
-      </Typography>
+      {/* Area-specific alerts (tribal, scheduled, forest, etc.) */}
+      {areaFindings.length > 0 && (
+        <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#fff3e0', border: '1px solid #ffe0b2' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#e65100', mb: 1 }}>
+            📍 Area-specific concerns for {location || 'this region'}
+          </Typography>
+          {areaFindings.map((f, i) => (
+            <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1, '&:last-child': { mb: 0 } }}>
+              <WarningIcon sx={{ fontSize: 14, color: getSeverityTextColor(f.severity), mt: 0.3 }} />
+              <Typography variant="body2" sx={{ color: '#3c4043', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                {f.text}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
 
-      {/* Legal Findings — collapsed by default, compact rows */}
+      {/* Missing documents to obtain */}
+      {missingDocSuggestions.length > 0 && (
+        <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#e8f0fe', border: '1px solid #c2d7fe' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <FolderOpenIcon sx={{ fontSize: 18, color: '#1a73e8' }} />
+            <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a73e8' }}>
+              Documents you should obtain
+            </Typography>
+          </Box>
+          {missingDocSuggestions.slice(0, 6).map((s, i) => (
+            <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 0.75, '&:last-child': { mb: 0 } }}>
+              <Typography variant="body2" sx={{ color: '#174ea6', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                • {s}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {/* What's wrong — Issues found (Fraud / Areas to Verify) */}
       <Accordion
-        defaultExpanded={report.legal_findings.some(f => !f.is_compliant)}
+        defaultExpanded={suspiciousFindings.length > 0}
         disableGutters
         elevation={0}
-        sx={{ border: '1px solid #e0e0e0', borderRadius: '8px !important', '&:before': { display: 'none' } }}
+        sx={{ border: '1px solid #e8eaed', borderRadius: '12px !important', '&:before': { display: 'none' } }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
+          <SecurityIcon sx={{ mr: 1.5, color: '#e37400', fontSize: 20 }} />
+          <Typography variant="body1" fontWeight={600} sx={{ color: '#202124' }}>
+            What to verify
+          </Typography>
+          <Chip label={report.fraud_findings.length} size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#fce8e6', color: '#d93025' }} />
+        </AccordionSummary>
+        <AccordionDetails sx={{ px: 2, pt: 0, pb: 1 }}>
+          {report.fraud_findings.length === 0 ? (
+            <Typography variant="body2" sx={{ color: '#80868b' }}>No areas of concern found.</Typography>
+          ) : (
+            report.fraud_findings.map((f: FraudFinding, i: number) => (
+              <FindingRow
+                key={i}
+                icon={f.is_suspicious
+                  ? <WarningIcon sx={{ fontSize: 18, color: '#e37400' }} />
+                  : <CheckCircleIcon sx={{ fontSize: 18, color: '#1e8e3e' }} />
+                }
+                title={f.description}
+                severity={f.severity}
+                detail={f.evidence?.length > 0 ? f.evidence.join('; ') : undefined}
+                suggestion={f.recommendation}
+              />
+            ))
+          )}
+        </AccordionDetails>
+      </Accordion>
+
+      {/* Legal checks */}
+      <Accordion
+        defaultExpanded={nonCompliantFindings.length > 0}
+        disableGutters
+        elevation={0}
+        sx={{ border: '1px solid #e8eaed', borderRadius: '12px !important', '&:before': { display: 'none' } }}
       >
         <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
           <GavelIcon sx={{ mr: 1.5, color: '#1a73e8', fontSize: 20 }} />
           <Typography variant="body1" fontWeight={600} sx={{ color: '#202124' }}>
-            Legal Checks
+            Legal checks
           </Typography>
           <Chip label={report.legal_findings.length} size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#e8f0fe', color: '#1a73e8' }} />
         </AccordionSummary>
@@ -252,80 +262,25 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
           {report.legal_findings.length === 0 ? (
             <Typography variant="body2" sx={{ color: '#80868b' }}>No legal findings.</Typography>
           ) : (
-            Object.entries(legalByCategory).map(([category, findings]) => (
-              <Box key={category} sx={{ mb: 1.5 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, mt: 1 }}>
-                  <Typography variant="caption" fontWeight={600} sx={{ color: '#5f6368', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    {category}
-                  </Typography>
-                  <Chip label={findings.length} size="small" sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#f1f3f4' }} />
-                </Box>
-                {findings.map((f: LegalFinding, i: number) => (
-                  <FindingRow
-                    key={i}
-                    icon={f.is_compliant
-                      ? <CheckCircleIcon sx={{ fontSize: 18, color: '#1e8e3e' }} />
-                      : <CancelIcon sx={{ fontSize: 18, color: '#d93025' }} />
-                    }
-                    title={f.description}
-                    severity={f.severity}
-                    detail={f.explanation}
-                    suggestion={f.remediation_suggestion}
-                  />
-                ))}
-              </Box>
-            ))
-          )}
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Fraud Findings */}
-      <Accordion
-        defaultExpanded={report.fraud_findings.some(f => f.is_suspicious)}
-        disableGutters
-        elevation={0}
-        sx={{ border: '1px solid #e0e0e0', borderRadius: '8px !important', '&:before': { display: 'none' } }}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
-          <SecurityIcon sx={{ mr: 1.5, color: '#e37400', fontSize: 20 }} />
-          <Typography variant="body1" fontWeight={600} sx={{ color: '#202124' }}>
-            Areas to Verify
-          </Typography>
-          <Chip label={report.fraud_findings.length} size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#fce8e6', color: '#d93025' }} />
-        </AccordionSummary>
-        <AccordionDetails sx={{ px: 2, pt: 0, pb: 1 }}>
-          {report.fraud_findings.length === 0 ? (
-            <Typography variant="body2" sx={{ color: '#80868b' }}>No fraud indicators found.</Typography>
-          ) : (
-            Object.entries(fraudByCategory).map(([category, findings]) => (
-              <Box key={category} sx={{ mb: 1.5 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, mt: 1 }}>
-                  <Typography variant="caption" fontWeight={600} sx={{ color: '#5f6368', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    {category}
-                  </Typography>
-                  <Chip label={findings.length} size="small" sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#f1f3f4' }} />
-                </Box>
-                {findings.map((f: FraudFinding, i: number) => (
-                  <FindingRow
-                    key={i}
-                    icon={f.is_suspicious
-                      ? <WarningIcon sx={{ fontSize: 18, color: '#e37400' }} />
-                      : <CheckCircleIcon sx={{ fontSize: 18, color: '#1e8e3e' }} />
-                    }
-                    title={f.description}
-                    severity={f.severity}
-                    detail={f.evidence?.length > 0 ? f.evidence.join('; ') : undefined}
-                    suggestion={f.recommendation}
-                  />
-                ))}
-              </Box>
+            report.legal_findings.map((f: LegalFinding, i: number) => (
+              <FindingRow
+                key={i}
+                icon={f.is_compliant
+                  ? <CheckCircleIcon sx={{ fontSize: 18, color: '#1e8e3e' }} />
+                  : <CancelIcon sx={{ fontSize: 18, color: '#d93025' }} />
+                }
+                title={f.description}
+                severity={f.severity}
+                detail={f.explanation}
+                suggestion={f.remediation_suggestion}
+              />
             ))
           )}
         </AccordionDetails>
       </Accordion>
 
       {/* Disclaimer */}
-      <Box sx={{ p: 2, borderRadius: 2, bgcolor: '#f8f9fa', border: '1px solid #e8eaed' }}>
+      <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#f8f9fa', border: '1px solid #e8eaed' }}>
         <Typography variant="caption" sx={{ color: '#5f6368', lineHeight: 1.6 }}>
           ⚠️ <strong>Disclaimer:</strong> This is an AI-assisted review to help you identify areas worth verifying. It is NOT a legal opinion or certification. Your documents may be perfectly valid. Always consult a qualified property lawyer or visit your local sub-registrar office before making any decisions.
         </Typography>

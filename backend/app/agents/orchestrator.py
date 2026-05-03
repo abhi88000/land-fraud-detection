@@ -93,17 +93,15 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
                 except Exception as cache_err:
                     logger.warning(f"Failed to cache extracted data for {document_id}: {cache_err}")
 
-            # Override state/district from user input if available
-            if state_override and extracted_data.property_details:
-                extracted_data.property_details.state = state_override
-            if district_override and extracted_data.property_details:
-                extracted_data.property_details.district = district_override
-            # Also use document-level state/district if not overridden
-            if not state_override and document.state and extracted_data.property_details:
-                if not extracted_data.property_details.state:
+            # Override state/district from user input if available (user-provided takes priority)
+            if extracted_data.property_details:
+                if state_override:
+                    extracted_data.property_details.state = state_override
+                elif document.state:
                     extracted_data.property_details.state = document.state
-            if not district_override and document.district and extracted_data.property_details:
-                if not extracted_data.property_details.district:
+                if district_override:
+                    extracted_data.property_details.district = district_override
+                elif document.district:
                     extracted_data.property_details.district = document.district
 
             # 3. Legal Rules Check and Fraud Detection (run in parallel)

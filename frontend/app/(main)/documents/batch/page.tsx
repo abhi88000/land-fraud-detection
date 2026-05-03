@@ -3,7 +3,7 @@
 import * as React from 'react';
 import {
   Box, Typography, CircularProgress, Alert, Paper, Chip, LinearProgress,
-  Button, Divider, Collapse, IconButton, Skeleton,
+  Button, Skeleton,
 } from '@mui/material';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth';
@@ -13,14 +13,10 @@ import { Document, AnalysisReport, DocumentStatus, LegalFinding, FraudFinding } 
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DescriptionIcon from '@mui/icons-material/Description';
-import SecurityIcon from '@mui/icons-material/Security';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import WarningIcon from '@mui/icons-material/Warning';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import PlaceIcon from '@mui/icons-material/Place';
 
 // ── helpers ──────────────────────────────────────────────
 const getSeverityBg = (s: string) => {
@@ -32,11 +28,6 @@ const getSeverityTextColor = (s: string) => {
   if (s === 'critical' || s === 'high') return '#d93025';
   if (s === 'medium') return '#e37400';
   return '#1a73e8';
-};
-const getRiskLabel = (score: number) => {
-  if (score >= 70) return { label: 'Needs Attention', color: 'error' as const };
-  if (score >= 40) return { label: 'Worth Checking', color: 'warning' as const };
-  return { label: 'Looks Good', color: 'success' as const };
 };
 
 /** Only return critical/high findings that the user should really know about */
@@ -157,10 +148,6 @@ export default function BatchAnalysisPage() {
     ? Math.round(Object.values(docStates).reduce((sum, s) => sum + s.progress, 0) / ids.length)
     : 0;
 
-  const avgRisk = reports.length > 0
-    ? Math.round(reports.reduce((s, r) => s + r.risk_score.overall_score, 0) / reports.length)
-    : 0;
-
   // Collect all critical/high items across all docs
   const allHighlights: { text: string; severity: string; docName: string }[] = [];
   for (const s of Object.values(docStates)) {
@@ -197,7 +184,7 @@ export default function BatchAnalysisPage() {
         Review Summary
       </Typography>
       <Typography variant="body2" sx={{ color: '#5f6368', mb: 3 }}>
-        {ids.length} document{ids.length > 1 ? 's' : ''} reviewed · Average score: {avgRisk}/100
+        {ids.length} document{ids.length > 1 ? 's' : ''} reviewed
       </Typography>
 
       {/* Progress (while analyzing) */}
@@ -281,7 +268,6 @@ export default function BatchAnalysisPage() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {Object.values(docStates).filter(s => s.report && s.doc).map(s => {
               const r = s.report!;
-              const ri = getRiskLabel(r.risk_score.overall_score);
               const highlights = getKeyHighlights(r);
               const fraudCount = r.fraud_findings.filter(f => f.is_suspicious).length;
               const legalCount = r.legal_findings.filter(f => !f.is_compliant).length;
@@ -312,17 +298,20 @@ export default function BatchAnalysisPage() {
                         {s.doc!.file_name}
                       </Typography>
                       <Typography variant="caption" sx={{ color: '#80868b' }}>
-                        {legalCount + fraudCount} area{legalCount + fraudCount !== 1 ? 's' : ''} to verify
+                        {legalCount + fraudCount === 0 ? 'No issues found' : `${legalCount + fraudCount} area${legalCount + fraudCount !== 1 ? 's' : ''} to verify`}
                       </Typography>
                     </Box>
 
-                    {/* Score */}
-                    <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                      <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, color: `${ri.color}.main`, lineHeight: 1 }}>
-                        {r.risk_score.overall_score}
-                      </Typography>
-                      <Chip label={ri.label} color={ri.color} size="small" sx={{ fontWeight: 600, fontSize: '0.65rem', height: 20, mt: 0.5 }} />
-                    </Box>
+                    {/* Status indicator (no score) */}
+                    <Chip
+                      label={legalCount + fraudCount === 0 ? 'Looks Good' : legalCount + fraudCount <= 3 ? 'Review' : 'Attention'}
+                      size="small"
+                      sx={{
+                        fontWeight: 600, fontSize: '0.7rem', height: 24, flexShrink: 0,
+                        bgcolor: legalCount + fraudCount === 0 ? '#e6f4ea' : legalCount + fraudCount <= 3 ? '#fffbe6' : '#fce8e6',
+                        color: legalCount + fraudCount === 0 ? '#1e8e3e' : legalCount + fraudCount <= 3 ? '#e37400' : '#d93025',
+                      }}
+                    />
                   </Box>
 
                   {/* Inline highlights for this doc (max 2) */}

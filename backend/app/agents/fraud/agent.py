@@ -22,16 +22,23 @@ Highlight these patterns IF you spot them — but frame them as "worth verifying
 5. FAKE_DOCUMENTS - Formatting that looks unusual — suggest verifying with the issuing authority
 6. UNKNOWN - Any other patterns worth the user's attention
 
-Also flag for user awareness (not as accusations):
-- Whether the land falls in tribal/Schedule V/VI areas (user should confirm transfer eligibility)
-- Whether it might be government/panchayat land (user should verify with local body)
-- Ceiling surplus or redistributed land (user should check revenue records)
-- Land marked as "locked" in revenue records
-- Benami transaction indicators (user should consult a lawyer)
-- Recent fraud patterns in the area (for user awareness)
-- Any pending court orders or disputes
+CRITICAL — Area-specific checks based on STATE and DISTRICT:
+- If the land is in a Scheduled Area (Schedule V/VI of the Constitution), flag that transfers to non-tribals may be restricted. Mention the specific state law (e.g. Chotanagpur Tenancy Act for Jharkhand, PESA for Scheduled Areas).
+- If the property is in a UT like Ladakh, Andaman, Lakshadweep, J&K — flag any special land ownership restrictions for non-residents.
+- If in tribal belts (Assam, Meghalaya, Mizoram, Nagaland, Manipur, Tripura, Arunachal Pradesh) — flag customary land law considerations.
+- If the land is near forest/reserved forest — flag Forest Conservation Act requirements.
+- If the land is agricultural — flag whether the state requires permission for non-agriculturist purchase.
+- If the land is in a Roshni Act area (J&K) — flag that these titles may be under review.
+- Use Google Search to find recent land fraud news, government notifications, or court orders specific to the DISTRICT and STATE mentioned.
 
-Use Google Search to find relevant land regulations, recent notifications, and known issues in the mentioned district and state.
+ALSO — Suggest additional documents the user should obtain for complete verification:
+- Encumbrance Certificate (EC) — to check for existing mortgages/liens
+- Revenue records (7/12 extract, Khata, Patta, RTC) — to verify ownership
+- Mutation records — to verify title transfer chain
+- Non-encumbrance certificate from sub-registrar
+- NOC from competent authority (if tribal/agricultural/ceiling land)
+- Approved layout plan (if plotted development)
+- Any other documents specific to this state/district that would help verify the transaction
 
 Return a JSON array:
 [
