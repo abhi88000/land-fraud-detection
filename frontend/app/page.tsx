@@ -150,16 +150,11 @@ function RevealOnScroll({ children, delay = 0 }: { children: React.ReactNode; de
 }
 
 export default function HomePage() {
-  const { user, loading, guestLogin } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
-
-  const handleGuestLogin = () => {
-    guestLogin();
-    router.push('/dashboard');
-  };
 
   const showDashboard = !loading && user;
 
@@ -301,7 +296,7 @@ export default function HomePage() {
                 </Button>
                 <Button
                   size="large"
-                  onClick={handleGuestLogin}
+                  onClick={() => router.push('/signup')}
                   sx={{
                     px: 4, py: 1.6,
                     background: '#f1f3f4',
@@ -317,7 +312,7 @@ export default function HomePage() {
                     },
                   }}
                 >
-                  Try as Guest
+                  Create Account
                 </Button>
               </>
             )}

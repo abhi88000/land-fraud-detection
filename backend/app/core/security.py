@@ -1,4 +1,3 @@
-import os
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional
@@ -27,10 +26,6 @@ async def get_current_user(id_token: str = Depends(oauth2_scheme)) -> User:
     """
     Verifies the Firebase ID token and returns the corresponding User object.
     """
-    # Bypass for guest login only in development/preview mode
-    if id_token == "guest-token" and os.getenv("ALLOW_GUEST_AUTH", "false").lower() == "true":
-        return User(uid="guest-user", email="guest@landguard.ai")
-
     if not firebase_admin._apps:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
