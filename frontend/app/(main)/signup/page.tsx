@@ -154,7 +154,6 @@ export default function SignUpPage() {
           </Box>
         </Box>
       </Box>
-      </Container>
-    </ThemeProvider>
+    </Container>
   );
 }
