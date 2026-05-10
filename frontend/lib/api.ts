@@ -22,11 +22,12 @@ export async function fetchDocuments(token?: string): Promise<{ documents: Docum
   }
 }
 
-export async function uploadDocument(file: File, token?: string, state?: string, district?: string): Promise<{ document_id: string; message: string }> {
+export async function uploadDocument(file: File, token?: string, state?: string, district?: string, landType?: string): Promise<{ document_id: string; message: string }> {
   const formData = new FormData();
   formData.append('file', file);
   if (state) formData.append('state', state);
   if (district) formData.append('district', district);
+  if (landType) formData.append('land_type', landType);
 
   const headers: Record<string, string> = {};
   if (token) {

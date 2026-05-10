@@ -20,6 +20,7 @@ async def upload_document(
     file: UploadFile = File(..., description="PDF or image land document to be analyzed"),
     state: Optional[str] = Form(None),
     district: Optional[str] = Form(None),
+    land_type: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -62,6 +63,7 @@ async def upload_document(
         status=DocumentStatus.PENDING,
         state=state or "",
         district=district or "",
+        land_type=land_type or "",
     )
     try:
         await firestore.create_document_entry(document.id, document.dict())

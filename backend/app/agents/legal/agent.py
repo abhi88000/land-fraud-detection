@@ -64,15 +64,31 @@ class LegalRulesAgent(BaseAgent[ExtractedData, List[LegalFinding]]):
         await self._update_progress(document_id, "Applying Indian land law compliance checks...", 30, "legal_checks_started")
 
         try:
+            land_type = ""
+            district = ""
+            state = ""
+            if extracted_data.property_details:
+                land_type = extracted_data.property_details.land_type or ""
+                district = extracted_data.property_details.district or ""
+                state = extracted_data.property_details.state or ""
+
+            prompt_text = (
+                f"Analyze this extracted land document data for legal compliance:\n\n"
+                f"{json.dumps(extracted_data.dict(), indent=2, default=str)}\n\n"
+                f"Location: {district}, {state}, India. Land Type: {land_type or 'Not specified'}.\n"
+                f"If Agricultural land, check state-specific agriculturist buyer requirements. "
+                f"If Residential/Commercial, check RERA applicability. "
+                f"If in tribal/scheduled area, check specific land transfer restrictions. "
+                f"Suggest specific documents the user needs to obtain for {state}."
+            )
+
             response = await self.client.aio.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=[
                     types.Content(
                         role="user",
                         parts=[
-                            types.Part.from_text(
-                                text=f"Analyze this extracted land document data for legal compliance:\n\n{json.dumps(extracted_data.dict(), indent=2, default=str)}"
-                            ),
+                            types.Part.from_text(text=prompt_text),
                         ],
                     )
                 ],

@@ -17,6 +17,7 @@ class PropertyDetails(BaseModel):
     city: Optional[str] = None
     district: Optional[str] = None
     state: Optional[str] = None
+    land_type: Optional[str] = None # Residential, Agricultural, Commercial, Industrial, Plantation
     country: str = "India"
 
 class RegistrationInfo(BaseModel):

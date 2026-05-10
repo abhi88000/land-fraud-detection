@@ -103,6 +103,9 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
                     extracted_data.property_details.district = district_override
                 elif document.district:
                     extracted_data.property_details.district = document.district
+                # Set land_type from document metadata
+                if document.land_type:
+                    extracted_data.property_details.land_type = document.land_type
 
             # 3. Legal Rules Check and Fraud Detection (run in parallel)
             legal_findings, fraud_findings = await asyncio.gather(

@@ -15,6 +15,7 @@ export interface Document {
   status: DocumentStatus;
   state?: string;
   district?: string;
+  land_type?: string;
   created_at: string;
   updated_at: string;
   progress_message?: string;
@@ -35,6 +36,7 @@ export interface PropertyDetails {
   city: string;
   district: string;
   state: string;
+  land_type?: string;
 }
 
 export interface ExtractedData {

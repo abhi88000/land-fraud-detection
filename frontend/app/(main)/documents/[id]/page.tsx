@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { Box, Typography, CircularProgress, Alert, Grid, Paper, Chip, LinearProgress, Stepper, Step, StepLabel, Button, Divider } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Paper, Chip, LinearProgress, Button, Divider } from '@mui/material';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth';
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -183,26 +183,36 @@ export default function DocumentAnalysisPage() {
   const isAnalyzing = !analysisReport && document.status !== DocumentStatus.COMPLETED && document.status !== DocumentStatus.FAILED;
 
   return (
-    <Box sx={{ py: 3 }}>
+    <Box sx={{ py: 3, maxWidth: 800, mx: 'auto' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => router.push('/dashboard')}
           size="small"
-          sx={{ color: '#5f6368', textTransform: 'none', fontWeight: 500 }}
+          sx={{ color: '#5f6368', textTransform: 'none', fontWeight: 500, borderRadius: '100px' }}
         >
           Dashboard
         </Button>
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-        <DescriptionIcon sx={{ color: '#4285f4', fontSize: 22 }} />
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h6" fontWeight={600} sx={{ color: '#202124' }}>
+        <Box sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: '#e8f0fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <DescriptionIcon sx={{ color: '#1a73e8', fontSize: 20 }} />
+        </Box>
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: '#202124', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {document.file_name}
           </Typography>
-          <Typography variant="caption" sx={{ color: '#80868b' }}>
-            {new Date(document.created_at).toLocaleString()}
-          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Typography variant="caption" sx={{ color: '#80868b' }}>
+              {new Date(document.created_at).toLocaleString()}
+            </Typography>
+            {document.state && (
+              <Chip label={document.state} size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#f1f3f4', color: '#5f6368' }} />
+            )}
+            {document.land_type && (
+              <Chip label={document.land_type} size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#fff3e0', color: '#e65100' }} />
+            )}
+          </Box>
         </Box>
         <Chip
           label={
@@ -211,97 +221,84 @@ export default function DocumentAnalysisPage() {
             document.status === DocumentStatus.IN_PROGRESS ? 'Analyzing...' : 'Pending'
           }
           size="small"
-          color={
-            document.status === DocumentStatus.COMPLETED ? 'success' :
-            document.status === DocumentStatus.FAILED ? 'error' : 'warning'
-          }
-          sx={{ fontWeight: 500 }}
+          sx={{
+            fontWeight: 600, fontSize: '0.7rem', height: 24, borderRadius: '100px',
+            bgcolor: document.status === DocumentStatus.COMPLETED ? '#e6f4ea' :
+              document.status === DocumentStatus.FAILED ? '#fce8e6' : '#fef7e0',
+            color: document.status === DocumentStatus.COMPLETED ? '#1e8e3e' :
+              document.status === DocumentStatus.FAILED ? '#d93025' : '#e37400',
+          }}
         />
       </Box>
 
-      {/* Progress Stepper - shown during analysis */}
+      {/* Progress — shown during analysis */}
       {isAnalyzing && (
-        <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-          <Stepper activeStep={getActiveStep()} alternativeLabel>
-            {analysisSteps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-          <Box sx={{ mt: 2 }}>
-            <LinearProgress
-              variant="determinate"
-              value={analysisProgress}
-              sx={{ height: 8, borderRadius: 4 }}
-            />
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
-              {analysisMessage} ({analysisProgress}%)
-            </Typography>
+        <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: '16px', border: '1px solid #e8eaed' }}>
+          {/* Step indicators */}
+          <Box sx={{ display: 'flex', gap: 0.5, mb: 2 }}>
+            {analysisSteps.map((label, i) => {
+              const active = getActiveStep();
+              const done = i < active;
+              const current = i === active;
+              return (
+                <Box key={label} sx={{ flex: 1, textAlign: 'center' }}>
+                  <Box sx={{
+                    height: 4, borderRadius: 2, mb: 0.75,
+                    bgcolor: done ? '#1e8e3e' : current ? '#1a73e8' : '#e8eaed',
+                    transition: 'background-color 0.4s ease',
+                  }} />
+                  <Typography variant="caption" sx={{
+                    fontSize: '0.65rem', fontWeight: current ? 700 : 400,
+                    color: done ? '#1e8e3e' : current ? '#1a73e8' : '#80868b',
+                  }}>
+                    {label}
+                  </Typography>
+                </Box>
+              );
+            })}
           </Box>
+
+          <Typography variant="body2" sx={{ color: '#3c4043', textAlign: 'center', fontWeight: 500 }}>
+            {analysisMessage}
+          </Typography>
+
+          {/* Live events */}
+          {liveEvents.length > 0 && (
+            <Box sx={{ mt: 2, maxHeight: 160, overflowY: 'auto', p: 1.5, borderRadius: '10px', bgcolor: '#f8f9fa' }}>
+              {liveEvents.slice(-6).map((event, index) => (
+                <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, '&:last-child': { mb: 0 } }}>
+                  <Box sx={{
+                    width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                    bgcolor: event.event_type.includes('failed') ? '#d93025' : event.event_type.includes('completed') ? '#1e8e3e' : '#1a73e8',
+                  }} />
+                  <Typography variant="caption" sx={{ color: '#5f6368', fontSize: '0.75rem' }}>{event.message}</Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
         </Paper>
       )}
 
-      <Grid container spacing={3}>
-        {/* Analysis Results or Progress */}
-        <Grid item xs={12}>
-          {/* Live Events during analysis */}
-          {isAnalyzing && (
-            <Paper sx={{ p: 2, mb: 2, borderRadius: 2 }}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                Live Progress
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
-                {liveEvents.length === 0 && (
-                  <Typography variant="body2" color="text.secondary">Waiting for analysis events...</Typography>
-                )}
-                {liveEvents.map((event, index) => (
-                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Chip
-                      label={event.event_type.replace(/_/g, ' ')}
-                      size="small"
-                      color={event.event_type.includes('failed') ? 'error' : event.event_type.includes('completed') ? 'success' : 'info'}
-                      variant="outlined"
-                      sx={{ minWidth: 120 }}
-                    />
-                    <Typography variant="body2" color="text.secondary">{event.message}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Paper>
-          )}
+      {/* Analysis Report */}
+      {analysisReport && <ReportDisplay report={analysisReport} />}
 
-          {/* Analysis Report */}
-          {analysisReport && (
-            <Paper sx={{ p: 2, borderRadius: 2 }}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                Analysis Report
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <ReportDisplay report={analysisReport} />
-            </Paper>
-          )}
+      {!analysisReport && document.status === DocumentStatus.COMPLETED && (
+        <Alert severity="warning" sx={{ borderRadius: '14px' }}>
+          Analysis completed but the report could not be loaded.
+        </Alert>
+      )}
 
-          {!analysisReport && document.status === DocumentStatus.COMPLETED && (
-            <Alert severity="warning" sx={{ borderRadius: 2 }}>
-              Analysis completed but the report could not be loaded.
-            </Alert>
-          )}
+      {!analysisReport && document.status === DocumentStatus.FAILED && (
+        <Alert severity="error" sx={{ borderRadius: '14px' }}>
+          Analysis failed. Please try uploading the document again.
+        </Alert>
+      )}
 
-          {!analysisReport && document.status === DocumentStatus.FAILED && (
-            <Alert severity="error" sx={{ borderRadius: 2 }}>
-              Analysis failed. Please try uploading the document again.
-            </Alert>
-          )}
-
-          {!analysisReport && !isAnalyzing && document.status !== DocumentStatus.COMPLETED && document.status !== DocumentStatus.FAILED && (
-            <Alert severity="info" sx={{ borderRadius: 2 }}>
-              Report will be available once analysis is complete.
-            </Alert>
-          )}
-        </Grid>
-      </Grid>
+      {!analysisReport && !isAnalyzing && document.status !== DocumentStatus.COMPLETED && document.status !== DocumentStatus.FAILED && (
+        <Alert severity="info" sx={{ borderRadius: '14px' }}>
+          Report will be available once analysis is complete.
+        </Alert>
+      )}
     </Box>
   );
 }

@@ -79,8 +79,13 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
             prompt_text = (
                 f"Review this extracted land document data and highlight areas the user should verify:\n\n"
                 f"{json.dumps(extracted_data.dict(), indent=2, default=str)}\n\n"
+                f"Location: {district}, {state}, India.\n"
+                f"Land Type: {extracted_data.property_details.land_type or 'Not specified'}\n\n"
                 f"Search for relevant land regulations, transfer restrictions, "
                 f"and any known issues in {district}, {state}, India. "
+                f"If land type is Agricultural, check non-agriculturist purchase rules for {state}. "
+                f"If Residential/Commercial, check RERA and zoning. "
+                f"If Plantation, check plantation-specific transfer rules. "
                 f"Help the user understand what to verify with local authorities.\n\n"
                 f"IMPORTANT: Frame all findings as advisory, not accusations. Return ONLY the JSON array as specified in system instructions."
             )
