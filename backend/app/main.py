@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.v1.endpoints import documents, analysis
+from app.api.v1.endpoints import documents, analysis, bundles
 import logging
 import os
 from datetime import datetime, timezone
@@ -46,6 +46,7 @@ app.add_middleware(
 # Include API routers
 app.include_router(documents.router, prefix=f"{settings.API_V1_STR}/documents", tags=["documents"])
 app.include_router(analysis.router, prefix=f"{settings.API_V1_STR}/analysis", tags=["analysis"])
+app.include_router(bundles.router, prefix=f"{settings.API_V1_STR}/bundles", tags=["bundles"])
 
 @app.get("/")
 async def root():

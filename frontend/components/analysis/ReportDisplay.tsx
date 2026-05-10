@@ -236,6 +236,52 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
         </Paper>
       )}
 
+      {/* ═══ Documents in this Bundle ═══ */}
+      {report.documents_analyzed && report.documents_analyzed.length > 0 && (
+        <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', border: '1px solid #e8eaed' }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: '#5f6368', textTransform: 'uppercase', letterSpacing: 0.5, mb: 1.5, display: 'block' }}>
+            Documents Analyzed ({report.documents_analyzed.length})
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            {report.documents_analyzed.map((doc, i) => (
+              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.75, px: 1, borderRadius: '8px', bgcolor: '#f8f9fa' }}>
+                <CheckCircleIcon sx={{ fontSize: 16, color: '#1e8e3e' }} />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {doc.file_name}
+                  </Typography>
+                  {doc.document_type && (
+                    <Typography variant="caption" sx={{ color: '#80868b', fontSize: '0.7rem' }}>
+                      Detected as: {doc.document_type}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        </Paper>
+      )}
+
+      {/* ═══ Missing Documents (server-identified) ═══ */}
+      {report.missing_documents && report.missing_documents.length > 0 && (
+        <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', bgcolor: '#fce8e6', border: '1px solid #f5c6cb' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FolderOpenIcon sx={{ fontSize: 16, color: '#d93025' }} />
+            </Box>
+            <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#d93025' }}>
+              Missing Documents — You Should Obtain These
+            </Typography>
+          </Box>
+          {report.missing_documents.map((doc, i) => (
+            <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 0.75, '&:last-child': { mb: 0 } }}>
+              <CancelIcon sx={{ fontSize: 14, color: '#d93025', mt: 0.3 }} />
+              <Typography variant="body2" sx={{ color: '#5f2120', fontSize: '0.82rem', lineHeight: 1.5 }}>{doc}</Typography>
+            </Box>
+          ))}
+        </Paper>
+      )}
+
       {/* ═══ Area-Specific Alerts ═══ */}
       {areaFindings.length > 0 && (
         <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', bgcolor: '#fff3e0', border: '1px solid #ffe0b2' }}>
@@ -256,7 +302,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
         </Paper>
       )}
 
-      {/* ═══ Missing Documents ═══ */}
+      {/* ═══ Additional Document Suggestions (from AI findings) ═══ */}
       {missingDocSuggestions.length > 0 && (
         <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', bgcolor: '#e8f0fe', border: '1px solid #c2d7fe' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>

@@ -6,6 +6,13 @@ export enum DocumentStatus {
   FAILED = 'failed',
 }
 
+export enum BundleStatus {
+  CREATED = 'created',
+  ANALYZING = 'analyzing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
 export interface Document {
   id: string;
   user_id: string;
@@ -16,10 +23,24 @@ export interface Document {
   state?: string;
   district?: string;
   land_type?: string;
+  bundle_id?: string;
   created_at: string;
   updated_at: string;
   progress_message?: string;
   progress_percentage?: number;
+}
+
+export interface Bundle {
+  id: string;
+  user_id: string;
+  name: string;
+  state: string;
+  district: string;
+  land_type: string;
+  status: BundleStatus;
+  document_ids: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Party {
@@ -79,6 +100,13 @@ export interface VerificationChecklistItem {
   details?: string;
 }
 
+export interface DocumentSummary {
+  document_id: string;
+  file_name: string;
+  document_type: string | null;
+  extracted_data: ExtractedData | null;
+}
+
 export interface AnalysisReport {
   document_id: string;
   summary: string;
@@ -87,6 +115,8 @@ export interface AnalysisReport {
   legal_findings: LegalFinding[];
   fraud_findings: FraudFinding[];
   verification_checklist: VerificationChecklistItem[];
+  documents_analyzed?: DocumentSummary[];
+  missing_documents?: string[];
   generated_at: string;
 }
 

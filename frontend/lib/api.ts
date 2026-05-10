@@ -1,4 +1,4 @@
-import { Document } from './types';
+import { Document, Bundle } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
 // NEXT_PUBLIC_BACKEND_API_URL should be the full base like http://localhost:8000/api/v1
@@ -106,4 +106,91 @@ export async function deleteDocument(id: string, token?: string): Promise<void> 
   if (!response.ok) {
     throw new Error('Failed to delete document');
   }
+}
+
+// ─── Bundle API ───
+
+export async function createBundle(
+  files: File[],
+  state: string,
+  district: string,
+  landType: string,
+  token?: string
+): Promise<{ bundle_id: string; message: string }> {
+  const formData = new FormData();
+  formData.append('state', state);
+  formData.append('district', district);
+  formData.append('land_type', landType);
+  for (const file of files) {
+    formData.append('files', file);
+  }
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_V1}/bundles/create`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to create bundle');
+  }
+  return await response.json();
+}
+
+export async function fetchBundles(token?: string): Promise<{ bundles: Bundle[] }> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_V1}/bundles`, { headers });
+  if (!response.ok) throw new Error('Failed to fetch bundles');
+  const result = await response.json();
+  return { bundles: result.bundles || [] };
+}
+
+export async function fetchBundleDetails(bundleId: string, token?: string): Promise<{ bundle: Bundle; documents: any[] }> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_V1}/bundles/${bundleId}`, { headers });
+  if (!response.ok) throw new Error('Failed to fetch bundle details');
+  return await response.json();
+}
+
+export async function analyzeBundle(bundleId: string, token?: string): Promise<{ message: string }> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_V1}/bundles/${bundleId}/analyze`, {
+    method: 'POST',
+    headers,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to start analysis');
+  }
+  return await response.json();
+}
+
+export async function fetchBundleReport(bundleId: string, token?: string): Promise<{ report: any }> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_V1}/bundles/${bundleId}/report`, { headers });
+  if (!response.ok) throw new Error('Failed to fetch bundle report');
+  return await response.json();
+}
+
+export async function deleteBundle(bundleId: string, token?: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_V1}/bundles/${bundleId}`, {
+    method: 'DELETE',
+    headers,
+  });
+  if (!response.ok) throw new Error('Failed to delete bundle');
 }

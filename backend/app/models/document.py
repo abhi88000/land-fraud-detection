@@ -21,6 +21,7 @@ class Document(BaseModel):
     state: str = Field("", description="Indian state where the property is located")
     district: str = Field("", description="District where the property is located")
     land_type: str = Field("", description="Type of land: Residential, Agricultural, Commercial, Industrial, Plantation")
+    bundle_id: str = Field("", description="ID of the bundle this document belongs to")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Timestamp of document upload")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Timestamp of last update")
 

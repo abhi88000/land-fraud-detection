@@ -24,7 +24,7 @@ import AgricultureIcon from '@mui/icons-material/Agriculture';
 import StoreIcon from '@mui/icons-material/Store';
 import FactoryIcon from '@mui/icons-material/Factory';
 import ParkIcon from '@mui/icons-material/Park';
-import { uploadDocument } from '@/lib/api';
+import { createBundle } from '@/lib/api';
 import { useAuth } from '@/lib/firebase/auth';
 
 const INDIAN_STATES = [
@@ -99,10 +99,8 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
     setError(null);
     try {
       const token = await user?.getIdToken();
-      for (let i = 0; i < files.length; i++) {
-        setUploadProgress(`Uploading ${i + 1} of ${files.length}...`);
-        await uploadDocument(files[i], token, state, district, landType);
-      }
+      setUploadProgress(`Creating bundle with ${files.length} file${files.length > 1 ? 's' : ''}...`);
+      await createBundle(files, state, district, landType, token);
       onUploadSuccess();
       setFiles([]);
       setState('');

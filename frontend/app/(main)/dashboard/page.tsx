@@ -4,19 +4,19 @@ import * as React from 'react';
 import { Typography, Box, Button, CircularProgress, Alert, Paper, Chip, Skeleton } from '@mui/material';
 import { useAuth } from '@/lib/firebase/auth';
 import { useEffect, useState } from 'react';
-import { Document, DocumentStatus } from '@/lib/types';
+import { Bundle, BundleStatus } from '@/lib/types';
 import DocumentList from '@/components/dashboard/DocumentList';
 import UploadDocumentDialog from '@/components/dashboard/UploadDocumentDialog';
-import { fetchDocuments } from '@/lib/api';
+import { fetchBundles } from '@/lib/api';
 import AddIcon from '@mui/icons-material/Add';
-import DescriptionIcon from '@mui/icons-material/Description';
+import FolderIcon from '@mui/icons-material/Folder';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [bundles, setBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isUploadDialogOpen, setUploadDialogOpen] = useState<boolean>(false);
@@ -24,20 +24,20 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      const loadDocuments = async () => {
+      const loadBundles = async () => {
         setLoading(true);
         setError(null);
         try {
           const token = await user.getIdToken();
-          const data = await fetchDocuments(token);
-          setDocuments(data.documents);
+          const data = await fetchBundles(token);
+          setBundles(data.bundles);
         } catch (err: any) {
-          setError(err.message || 'Failed to fetch documents.');
+          setError(err.message || 'Failed to fetch bundles.');
         } finally {
           setLoading(false);
         }
       };
-      loadDocuments();
+      loadBundles();
     }
   }, [user, refreshTrigger]);
 
@@ -46,7 +46,7 @@ export default function DashboardPage() {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleDocumentDelete = () => {
+  const handleDelete = () => {
     setRefreshTrigger(prev => prev + 1);
   }
 
@@ -58,14 +58,13 @@ export default function DashboardPage() {
     );
   }
 
-  const completedCount = documents.filter(d => d.status === DocumentStatus.COMPLETED).length;
-  const pendingCount = documents.filter(d =>
-    d.status === DocumentStatus.PENDING || d.status === DocumentStatus.UPLOADED || d.status === DocumentStatus.IN_PROGRESS
-  ).length;
-  const failedCount = documents.filter(d => d.status === DocumentStatus.FAILED).length;
+  const completedCount = bundles.filter(b => b.status === BundleStatus.COMPLETED).length;
+  const pendingCount = bundles.filter(b => b.status === BundleStatus.CREATED || b.status === BundleStatus.ANALYZING).length;
+  const failedCount = bundles.filter(b => b.status === BundleStatus.FAILED).length;
+  const totalFiles = bundles.reduce((sum, b) => sum + (b.document_ids?.length || 0), 0);
 
   const statCards = [
-    { label: 'Total', value: documents.length, icon: <DescriptionIcon sx={{ fontSize: 20 }} />, color: '#1a73e8', bg: '#e8f0fe' },
+    { label: 'Bundles', value: bundles.length, icon: <FolderIcon sx={{ fontSize: 20 }} />, color: '#1a73e8', bg: '#e8f0fe' },
     { label: 'Reviewed', value: completedCount, icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />, color: '#1e8e3e', bg: '#e6f4ea' },
     { label: 'Pending', value: pendingCount, icon: <HourglassEmptyIcon sx={{ fontSize: 20 }} />, color: '#e37400', bg: '#fef7e0' },
     { label: 'Failed', value: failedCount, icon: <ErrorOutlineIcon sx={{ fontSize: 20 }} />, color: '#d93025', bg: '#fce8e6' },
@@ -77,10 +76,10 @@ export default function DashboardPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
           <Typography sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' }, fontWeight: 700, color: '#202124' }}>
-            Your Documents
+            Your Document Bundles
           </Typography>
           <Typography variant="body2" sx={{ color: '#5f6368', mt: 0.5 }}>
-            Upload land documents for AI-assisted review
+            Each bundle groups documents for one property — analyzed together
           </Typography>
         </Box>
         <Button
@@ -95,7 +94,7 @@ export default function DashboardPage() {
             '&:hover': { bgcolor: '#303134' },
           }}
         >
-          Upload
+          New Bundle
         </Button>
       </Box>
 
@@ -131,11 +130,11 @@ export default function DashboardPage() {
         ))}
       </Box>
 
-      {/* Document List */}
+      {/* Bundle List */}
       {loading && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {[1, 2, 3].map(i => (
-            <Skeleton key={i} variant="rounded" height={72} sx={{ borderRadius: '12px' }} animation="wave" />
+            <Skeleton key={i} variant="rounded" height={80} sx={{ borderRadius: '14px' }} animation="wave" />
           ))}
         </Box>
       )}
@@ -145,7 +144,7 @@ export default function DashboardPage() {
         </Alert>
       )}
       {!loading && !error && (
-        <DocumentList documents={documents} onDelete={handleDocumentDelete} onAnalysisStarted={handleDocumentDelete} />
+        <DocumentList bundles={bundles} onDelete={handleDelete} onAnalysisStarted={handleDelete} />
       )}
 
       <UploadDocumentDialog

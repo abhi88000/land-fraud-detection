@@ -150,14 +150,25 @@ class VerificationChecklistItem(BaseModel):
     is_checked: bool
     details: Optional[str] = None
 
+class DocumentSummary(BaseModel):
+    """Summary of a single document within a bundle."""
+    document_id: str = ""
+    file_name: str = ""
+    document_type: Optional[str] = None
+    extracted_data: Optional[ExtractedData] = None
+
+
 class AnalysisReport(BaseModel):
-    document_id: str = Field(..., description="ID of the analyzed document")
-    summary: str = Field(default="", description="Overall summary of the document analysis")
+    document_id: str = Field(..., description="ID of the analyzed document or bundle")
+    summary: str = Field(default="", description="Overall summary of the analysis")
     risk_score: Optional[RiskScore] = None
     extracted_data: Optional[ExtractedData] = None
     legal_findings: List[LegalFinding] = Field(default_factory=list)
     fraud_findings: List[FraudFinding] = Field(default_factory=list)
     verification_checklist: List[VerificationChecklistItem] = Field(default_factory=list)
+    # Bundle-specific fields
+    documents_analyzed: Optional[List[DocumentSummary]] = None
+    missing_documents: Optional[List[str]] = None
     generated_at: datetime = Field(default_factory=datetime.utcnow, description="Timestamp of report generation")
 
     class Config:

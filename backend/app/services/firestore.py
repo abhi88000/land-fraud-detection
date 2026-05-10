@@ -31,6 +31,9 @@ class MockFirestoreService:
         self.documents = {}
         self.reports = {}
         self.events = {}
+        self.bundles = {}
+        self.bundle_reports = {}
+        self.bundle_events = {}
 
     async def create_document_entry(self, document_id: str, document_data: Dict[str, Any]):
         logger.info(f"[MOCK FIRESTORE] Creating document {document_id}")
@@ -84,12 +87,57 @@ class MockFirestoreService:
             self.events[document_id] = []
         self.events[document_id].append(event_data)
 
+    # --- Bundle mock methods ---
+    async def create_bundle_entry(self, bundle_id: str, data: Dict[str, Any]):
+        data["created_at"] = datetime.utcnow().isoformat() + "Z"
+        self.bundles[bundle_id] = data
+
+    async def get_bundle_entry(self, bundle_id: str) -> Optional[Dict[str, Any]]:
+        return self.bundles.get(bundle_id)
+
+    async def update_bundle_entry(self, bundle_id: str, updates: Dict[str, Any]):
+        if bundle_id in self.bundles:
+            self.bundles[bundle_id].update(updates)
+
+    async def list_bundles_for_user(self, user_id: str) -> List[Dict[str, Any]]:
+        user_bundles = [b for b in self.bundles.values() if b.get("user_id") == user_id]
+        user_bundles.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        return user_bundles
+
+    async def delete_bundle_entry(self, bundle_id: str):
+        self.bundles.pop(bundle_id, None)
+        self.bundle_reports.pop(bundle_id, None)
+        self.bundle_events.pop(bundle_id, None)
+
+    async def save_bundle_report(self, bundle_id: str, report_data: Dict[str, Any]):
+        self.bundle_reports[bundle_id] = report_data
+
+    async def get_bundle_report(self, bundle_id: str) -> Optional[Dict[str, Any]]:
+        return self.bundle_reports.get(bundle_id)
+
+    async def list_documents_for_bundle(self, bundle_id: str) -> List[Dict[str, Any]]:
+        return [d for d in self.documents.values() if d.get("bundle_id") == bundle_id]
+
+    async def add_bundle_event(self, bundle_id: str, event_data: Dict[str, Any]):
+        if bundle_id not in self.bundle_events:
+            self.bundle_events[bundle_id] = []
+        self.bundle_events[bundle_id].append(event_data)
+
+    async def get_bundle_events_since(self, bundle_id: str, since_timestamp: Optional[str] = None) -> List[Dict[str, Any]]:
+        events = self.bundle_events.get(bundle_id, [])
+        if since_timestamp:
+            events = [e for e in events if e.get("timestamp", "") > since_timestamp]
+        return events
+
+
 class FirestoreService:
     def __init__(self):
         try:
             self.db = AsyncClient(project=settings.GCP_PROJECT_ID)
             self.documents_collection = self.db.collection(settings.FIRESTORE_COLLECTION_DOCUMENTS)
             self.reports_collection = self.db.collection(settings.FIRESTORE_COLLECTION_ANALYSIS_REPORTS)
+            self.bundles_collection = self.db.collection("bundles")
+            self.bundle_reports_collection = self.db.collection("bundle_reports")
             self.is_mock = False
             logger.info("Firestore AsyncClient initialized successfully.")
         except Exception as e:
@@ -242,5 +290,130 @@ class FirestoreService:
             await self.reports_collection.document(document_id).delete()
         except Exception as e:
             logger.error(f"Failed to delete document {document_id}: {e}")
+
+    # --- Bundle methods ---
+
+    async def create_bundle_entry(self, bundle_id: str, data: Dict[str, Any]):
+        if self.is_mock:
+            return await self.mock.create_bundle_entry(bundle_id, data)
+        try:
+            await self.bundles_collection.document(bundle_id).set(data)
+        except Exception as e:
+            logger.error(f"Failed to create bundle {bundle_id}: {e}")
+            raise LandGuardException(f"Failed to create bundle: {e}")
+
+    async def get_bundle_entry(self, bundle_id: str) -> Optional[Dict[str, Any]]:
+        if self.is_mock:
+            return await self.mock.get_bundle_entry(bundle_id)
+        try:
+            doc = await self.bundles_collection.document(bundle_id).get()
+            if doc.exists:
+                d = doc.to_dict()
+                d["id"] = doc.id
+                return _convert_timestamps(d)
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get bundle {bundle_id}: {e}")
+            raise LandGuardException(f"Failed to get bundle: {e}")
+
+    async def update_bundle_entry(self, bundle_id: str, updates: Dict[str, Any]):
+        if self.is_mock:
+            return await self.mock.update_bundle_entry(bundle_id, updates)
+        try:
+            updates["updated_at"] = datetime.utcnow().isoformat() + "Z"
+            await self.bundles_collection.document(bundle_id).update(updates)
+        except Exception as e:
+            logger.error(f"Failed to update bundle {bundle_id}: {e}")
+            raise LandGuardException(f"Failed to update bundle: {e}")
+
+    async def list_bundles_for_user(self, user_id: str) -> List[Dict[str, Any]]:
+        if self.is_mock:
+            return await self.mock.list_bundles_for_user(user_id)
+        try:
+            query = self.bundles_collection.where(filter=FieldFilter("user_id", "==", user_id))
+            bundles = []
+            async for doc in query.stream():
+                d = doc.to_dict()
+                d["id"] = doc.id
+                bundles.append(_convert_timestamps(d))
+            bundles.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+            return bundles
+        except Exception as e:
+            logger.error(f"Failed to list bundles for user {user_id}: {e}")
+            raise LandGuardException(f"Failed to list bundles: {e}")
+
+    async def delete_bundle_entry(self, bundle_id: str):
+        if self.is_mock:
+            return await self.mock.delete_bundle_entry(bundle_id)
+        try:
+            # Delete bundle events
+            events_ref = self.bundles_collection.document(bundle_id).collection("events")
+            async for doc in events_ref.stream():
+                await doc.reference.delete()
+            await self.bundles_collection.document(bundle_id).delete()
+            await self.bundle_reports_collection.document(bundle_id).delete()
+        except Exception as e:
+            logger.error(f"Failed to delete bundle {bundle_id}: {e}")
+
+    async def save_bundle_report(self, bundle_id: str, report_data: Dict[str, Any]):
+        if self.is_mock:
+            return await self.mock.save_bundle_report(bundle_id, report_data)
+        try:
+            await self.bundle_reports_collection.document(bundle_id).set(report_data)
+        except Exception as e:
+            logger.error(f"Failed to save bundle report {bundle_id}: {e}")
+            raise LandGuardException(f"Failed to save bundle report: {e}")
+
+    async def get_bundle_report(self, bundle_id: str) -> Optional[Dict[str, Any]]:
+        if self.is_mock:
+            return await self.mock.get_bundle_report(bundle_id)
+        try:
+            doc = await self.bundle_reports_collection.document(bundle_id).get()
+            if doc.exists:
+                return _convert_timestamps(doc.to_dict())
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get bundle report {bundle_id}: {e}")
+            raise LandGuardException(f"Failed to get bundle report: {e}")
+
+    async def list_documents_for_bundle(self, bundle_id: str) -> List[Dict[str, Any]]:
+        if self.is_mock:
+            return await self.mock.list_documents_for_bundle(bundle_id)
+        try:
+            query = self.documents_collection.where(filter=FieldFilter("bundle_id", "==", bundle_id))
+            docs = []
+            async for doc in query.stream():
+                d = doc.to_dict()
+                d["id"] = doc.id
+                docs.append(_convert_timestamps(d))
+            return docs
+        except Exception as e:
+            logger.error(f"Failed to list documents for bundle {bundle_id}: {e}")
+            return []
+
+    async def add_bundle_event(self, bundle_id: str, event_data: Dict[str, Any]):
+        if self.is_mock:
+            return await self.mock.add_bundle_event(bundle_id, event_data)
+        try:
+            await self.bundles_collection.document(bundle_id).collection("events").add(event_data)
+        except Exception as e:
+            logger.error(f"Failed to add bundle event {bundle_id}: {e}")
+
+    async def get_bundle_events_since(self, bundle_id: str, since_timestamp: Optional[str] = None) -> List[Dict[str, Any]]:
+        if self.is_mock:
+            return await self.mock.get_bundle_events_since(bundle_id, since_timestamp)
+        try:
+            events_ref = self.bundles_collection.document(bundle_id).collection("events")
+            docs = []
+            async for doc in events_ref.stream():
+                d = doc.to_dict()
+                docs.append(_convert_timestamps(d))
+            docs.sort(key=lambda x: x.get("timestamp", ""))
+            if since_timestamp:
+                docs = [d for d in docs if d.get("timestamp", "") > since_timestamp]
+            return docs
+        except Exception as e:
+            logger.error(f"Failed to get bundle events {bundle_id}: {e}")
+            return []
 
 firestore = FirestoreService()

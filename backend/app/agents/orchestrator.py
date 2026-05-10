@@ -4,18 +4,19 @@ from app.agents.legal.agent import LegalRulesAgent
 from app.agents.fraud.agent import FraudDetectionAgent
 from app.agents.report.agent import ReportGeneratorAgent, ReportInput
 from app.models.document import DocumentStatus, Document
-from app.services import firestore # Assuming Firestore for document state
+from app.models.bundle import Bundle, BundleStatus
+from app.services import firestore
 from app.services import cache as redis_cache
 from app.services import bigquery as bq_service
 from app.services import monitoring as metrics
 from app.services import pubsub as pubsub_service
 from app.services import embeddings as embedding_service
-from app.models.analysis import ExtractedData, LegalFinding, FraudFinding, AnalysisReport
+from app.models.analysis import ExtractedData, LegalFinding, FraudFinding, AnalysisReport, DocumentSummary
 import asyncio
 import json
 import time
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -225,3 +226,204 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
 
         except Exception as e:
             logger.warning(f"Post-analysis tasks failed for {document_id}: {e}")
+
+    async def _update_bundle_progress(self, bundle_id: str, message: str, progress: int, event_type: str, data: dict = None):
+        """Update progress for a bundle analysis via Firestore events."""
+        event_data = {
+            "event_type": event_type,
+            "message": message,
+            "progress": progress,
+            "data": data or {},
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+        }
+        await firestore.add_bundle_event(bundle_id, event_data)
+
+    async def analyze_bundle(self, bundle_id: str):
+        """
+        Analyze all documents in a bundle together.
+        Parses each doc individually, combines context, runs legal/fraud once, generates combined report.
+        """
+        await self._update_bundle_progress(bundle_id, "Bundle analysis started.", 5, "analysis_started")
+        await firestore.update_bundle_entry(bundle_id, {"status": BundleStatus.ANALYZING.value})
+
+        try:
+            # 1. Fetch bundle and its documents
+            bundle_data = await firestore.get_bundle_entry(bundle_id)
+            if not bundle_data:
+                raise ValueError(f"Bundle {bundle_id} not found.")
+            bundle = Bundle(**bundle_data)
+
+            docs_data = await firestore.list_documents_for_bundle(bundle_id)
+            if not docs_data:
+                raise ValueError(f"No documents found in bundle {bundle_id}.")
+            documents = [Document(**d) for d in docs_data]
+
+            await self._update_bundle_progress(bundle_id, f"Parsing {len(documents)} documents...", 10, "parsing_started")
+
+            # 2. Parse each document (parallel with caching)
+            doc_summaries: list[DocumentSummary] = []
+            all_extracted: list[ExtractedData] = []
+
+            async def parse_one(doc: Document, idx: int):
+                extracted = None
+                # Check cache layers
+                cached = await redis_cache.get_cached_ocr(doc.id)
+                if cached:
+                    extracted = ExtractedData(**cached)
+                else:
+                    doc_entry = await firestore.get_document_entry(doc.id)
+                    if doc_entry and doc_entry.get("cached_extracted_data"):
+                        extracted = ExtractedData(**doc_entry["cached_extracted_data"])
+                        await redis_cache.set_cached_ocr(doc.id, doc_entry["cached_extracted_data"])
+
+                if not extracted:
+                    extracted = await self.parser_agent.run(doc.gcs_path, doc.id)
+                    extracted_dict = json.loads(extracted.model_dump_json())
+                    try:
+                        await asyncio.gather(
+                            firestore.update_document_entry(doc.id, {"cached_extracted_data": extracted_dict}),
+                            redis_cache.set_cached_ocr(doc.id, extracted_dict),
+                        )
+                    except Exception:
+                        pass
+
+                # Override location from bundle
+                if extracted.property_details:
+                    extracted.property_details.state = bundle.state
+                    extracted.property_details.district = bundle.district
+                    extracted.property_details.land_type = bundle.land_type
+
+                return DocumentSummary(
+                    document_id=doc.id,
+                    file_name=doc.file_name,
+                    document_type=extracted.document_type,
+                    extracted_data=extracted,
+                ), extracted
+
+            parse_tasks = [parse_one(doc, i) for i, doc in enumerate(documents)]
+            results = await asyncio.gather(*parse_tasks, return_exceptions=True)
+
+            for r in results:
+                if isinstance(r, Exception):
+                    logger.warning(f"Failed to parse a document in bundle {bundle_id}: {r}")
+                    continue
+                summary, extracted = r
+                doc_summaries.append(summary)
+                all_extracted.append(extracted)
+
+            if not all_extracted:
+                raise ValueError("Failed to parse any documents in the bundle.")
+
+            await self._update_bundle_progress(bundle_id, f"Parsed {len(all_extracted)} documents. Running analysis...", 40, "parsing_completed")
+
+            # 3. Combine extracted data into a single context for legal/fraud
+            # Use the first doc's extracted data as base, merge parties and details
+            combined = all_extracted[0].model_copy(deep=True)
+            all_parties = list(combined.party_names)
+            all_survey_numbers = list(combined.property_details.survey_numbers) if combined.property_details else []
+
+            for ed in all_extracted[1:]:
+                for p in ed.party_names:
+                    if not any(ep.name == p.name and ep.role == p.role for ep in all_parties):
+                        all_parties.append(p)
+                if ed.property_details:
+                    for sn in ed.property_details.survey_numbers:
+                        if sn not in all_survey_numbers:
+                            all_survey_numbers.append(sn)
+
+            combined.party_names = all_parties
+            if combined.property_details:
+                combined.property_details.survey_numbers = all_survey_numbers
+            # Add document types found as context
+            doc_types_found = [s.document_type for s in doc_summaries if s.document_type]
+            combined.document_type = ", ".join(doc_types_found) if doc_types_found else combined.document_type
+
+            # 4. Run legal and fraud checks in parallel on combined data
+            # Use bundle_id as the progress tracking ID
+            legal_findings, fraud_findings = await asyncio.gather(
+                self.legal_agent.run(combined, bundle_id),
+                self.fraud_agent.run(combined, bundle_id),
+            )
+
+            await self._update_bundle_progress(bundle_id, "Generating report...", 75, "report_generation_started")
+
+            # 5. Identify missing documents based on state/land_type
+            missing_docs = self._identify_missing_documents(doc_types_found, bundle.state, bundle.land_type)
+
+            # 6. Generate report
+            report_input = ReportInput(
+                document_id=bundle_id,
+                extracted_data=combined,
+                legal_findings=legal_findings,
+                fraud_findings=fraud_findings,
+            )
+            report = await self.report_agent.run(report_input, bundle_id)
+
+            # Attach bundle-specific fields
+            report.documents_analyzed = doc_summaries
+            report.missing_documents = missing_docs
+
+            # 7. Save report and update status
+            report_dict = json.loads(report.model_dump_json())
+            await firestore.save_bundle_report(bundle_id, report_dict)
+            await firestore.update_bundle_entry(bundle_id, {"status": BundleStatus.COMPLETED.value})
+
+            # Mark all documents as completed
+            for doc in documents:
+                await firestore.update_document_status(doc.id, DocumentStatus.COMPLETED)
+
+            await self._update_bundle_progress(bundle_id, "Analysis completed.", 100, "analysis_completed", data=report_dict)
+            return report
+
+        except Exception as e:
+            logger.error(f"Bundle analysis failed for {bundle_id}: {e}")
+            await firestore.update_bundle_entry(bundle_id, {"status": BundleStatus.FAILED.value})
+            await self._update_bundle_progress(bundle_id, f"Analysis failed: {e}", 100, "analysis_failed")
+            raise
+
+    def _identify_missing_documents(self, found_types: list[str], state: str, land_type: str) -> list[str]:
+        """Identify documents the user should obtain based on what's in the bundle."""
+        found_lower = [t.lower() for t in found_types if t]
+
+        # Universal documents every land transaction should have
+        essential = {
+            "Sale Deed / Conveyance Deed": ["sale deed", "conveyance deed", "deed of sale"],
+            "Encumbrance Certificate (EC)": ["encumbrance certificate", "ec"],
+            "Property Tax Receipts": ["property tax", "tax receipt"],
+            "Title Deed / Chain of Ownership": ["title deed", "title document", "chain of ownership"],
+            "Mutation / Khata Transfer Record": ["mutation", "khata", "khata transfer", "mutation register"],
+        }
+
+        # Land-type specific
+        if land_type and "agricultural" in land_type.lower():
+            essential["7/12 Extract / RTC / Patta / Adangal"] = ["7/12", "rtc", "patta", "adangal", "pahani", "record of rights"]
+            essential["Non-Agriculturist (NA) Conversion Order (if applicable)"] = ["na order", "conversion order", "non-agriculturist"]
+            essential["Land Revenue / Khajana Receipt"] = ["khajana", "land revenue"]
+        elif land_type and "commercial" in land_type.lower():
+            essential["RERA Registration (if applicable)"] = ["rera"]
+            essential["Occupancy Certificate (OC)"] = ["occupancy certificate", "oc"]
+            essential["Building Plan Approval"] = ["building plan", "plan approval"]
+        elif land_type and "residential" in land_type.lower():
+            essential["Occupancy Certificate (OC)"] = ["occupancy certificate", "oc"]
+            essential["Building Plan / Layout Approval"] = ["building plan", "layout approval", "plan approval"]
+        elif land_type and "plantation" in land_type.lower():
+            essential["Plantation Registration Certificate"] = ["plantation registration", "plantation certificate"]
+            essential["Forest Clearance (if applicable)"] = ["forest clearance", "forest noc"]
+
+        # State-specific additions
+        state_lower = state.lower() if state else ""
+        if "karnataka" in state_lower:
+            essential["E-Khata Certificate"] = ["e-khata", "ekhata"]
+        elif "maharashtra" in state_lower:
+            essential["7/12 Extract & 8A Extract"] = ["7/12", "8a extract"]
+        elif "tamil nadu" in state_lower:
+            essential["Patta / Chitta"] = ["patta", "chitta"]
+        elif any(s in state_lower for s in ["jharkhand", "jammu", "kashmir"]):
+            essential["Roshni Act Status Check"] = ["roshni"]
+
+        missing = []
+        for doc_name, keywords in essential.items():
+            if not any(kw in ft for ft in found_lower for kw in keywords):
+                missing.append(doc_name)
+
+        return missing
