@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = 'http://127.0.0.1:8000/api/v1';
+const BACKEND_URL = process.env.BACKEND_API_URL || 'http://127.0.0.1:8000/api/v1';
 
 export async function GET(request: NextRequest, { params }: { params: { path?: string[] } }) {
   return handleRequest(request, params);
@@ -43,12 +43,26 @@ async function handleRequest(request: NextRequest, params: { path?: string[] }) 
       cache: 'no-store',
     });
 
+    const contentType = response.headers.get('Content-Type') || 'application/json';
+
+    // Stream SSE responses
+    if (contentType.includes('text/event-stream') && response.body) {
+      return new NextResponse(response.body as any, {
+        status: response.status,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+
     const data = await response.arrayBuffer();
 
     return new NextResponse(data, {
       status: response.status,
       headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'application/json',
+        'Content-Type': contentType,
       },
     });
   } catch (error: any) {

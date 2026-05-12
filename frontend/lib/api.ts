@@ -1,8 +1,7 @@
 import { Document, Bundle } from './types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
-// NEXT_PUBLIC_BACKEND_API_URL should be the full base like http://localhost:8000/api/v1
-const API_V1 = API_BASE_URL;
+// Use Next.js proxy to avoid CORS issues (same-origin calls from browser)
+const API_V1 = '/proxy/v1';
 
 export async function fetchDocuments(token?: string): Promise<{ documents: Document[] }> {
   try {

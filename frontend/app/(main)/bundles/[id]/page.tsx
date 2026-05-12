@@ -39,7 +39,7 @@ export default function BundleDetailPage() {
       eventSourceRef.current = null;
     }
 
-    const sseUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/bundles/${bundleId}/stream`;
+    const sseUrl = `/proxy/v1/bundles/${bundleId}/stream`;
     eventSourceRef.current = new EventSourcePolyfill(sseUrl, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
