@@ -83,7 +83,7 @@ class LegalRulesAgent(BaseAgent[ExtractedData, List[LegalFinding]]):
             )
 
             response = await self.client.aio.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 contents=[
                     types.Content(
                         role="user",
@@ -96,6 +96,7 @@ class LegalRulesAgent(BaseAgent[ExtractedData, List[LegalFinding]]):
                     system_instruction=LEGAL_SYSTEM_PROMPT,
                     temperature=0.2,
                     response_mime_type="application/json",
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
                 ),
             )
 

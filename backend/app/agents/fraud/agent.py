@@ -91,7 +91,7 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
             )
 
             response = await self.client.aio.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 contents=[
                     types.Content(
                         role="user",
@@ -101,6 +101,7 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
                 config=types.GenerateContentConfig(
                     system_instruction=FRAUD_SYSTEM_PROMPT,
                     temperature=0.2,
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
                     tools=[types.Tool(google_search=types.GoogleSearch())],
                 ),
             )
