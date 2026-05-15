@@ -130,11 +130,49 @@ async def analyze_bundle(bundle_id: str, current_user: User = Depends(get_curren
     if bundle.status == BundleStatus.ANALYZING:
         raise HTTPException(status_code=409, detail="Analysis already in progress.")
 
+    # Reset status for retry
+    await firestore.update_bundle_entry(bundle_id, {"status": BundleStatus.CREATED.value})
+
     orchestrator = OrchestratorAgent()
     asyncio.create_task(orchestrator.analyze_bundle(bundle_id))
     logger.info(f"Bundle analysis triggered for {bundle_id}")
 
     return {"message": "Analysis started.", "bundle_id": bundle_id}
+
+
+@router.put("/{bundle_id}")
+async def update_bundle(
+    bundle_id: str,
+    state: str = Form(None),
+    district: str = Form(None),
+    land_type: str = Form(None),
+    current_user: User = Depends(get_current_user),
+):
+    """Update bundle metadata (state, district, land_type)."""
+    bundle_data = await firestore.get_bundle_entry(bundle_id)
+    if not bundle_data:
+        raise HTTPException(status_code=404, detail="Bundle not found.")
+    if bundle_data.get("user_id") != current_user.uid:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+
+    updates = {}
+    if state is not None:
+        updates["state"] = state
+    if district is not None:
+        updates["district"] = district
+    if land_type is not None:
+        updates["land_type"] = land_type
+
+    if updates:
+        # Also update the bundle name
+        new_state = updates.get("state", bundle_data.get("state", ""))
+        new_district = updates.get("district", bundle_data.get("district", ""))
+        new_land_type = updates.get("land_type", bundle_data.get("land_type", ""))
+        updates["name"] = f"{new_land_type} land in {new_district}, {new_state}"
+        await firestore.update_bundle_entry(bundle_id, updates)
+
+    updated = await firestore.get_bundle_entry(bundle_id)
+    return {"bundle": updated}
 
 
 @router.get("/{bundle_id}/stream", response_class=EventSourceResponse)

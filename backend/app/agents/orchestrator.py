@@ -16,6 +16,7 @@ import asyncio
 import json
 import time
 import logging
+import traceback
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -376,7 +377,7 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
             return report
 
         except Exception as e:
-            logger.error(f"Bundle analysis failed for {bundle_id}: {e}")
+            logger.error(f"Bundle analysis failed for {bundle_id}: {e}\n{traceback.format_exc()}")
             await firestore.update_bundle_entry(bundle_id, {"status": BundleStatus.FAILED.value})
             await self._update_bundle_progress(bundle_id, f"Analysis failed: {e}", 100, "analysis_failed")
             raise

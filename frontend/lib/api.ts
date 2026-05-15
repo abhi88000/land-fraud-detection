@@ -196,3 +196,21 @@ export async function deleteBundle(bundleId: string, token?: string): Promise<vo
   });
   if (!response.ok) throw new Error('Failed to delete bundle');
 }
+
+export async function updateBundle(bundleId: string, state: string, district: string, landType: string, token?: string): Promise<any> {
+  const formData = new FormData();
+  formData.append('state', state);
+  formData.append('district', district);
+  formData.append('land_type', landType);
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_V1}/bundles/${bundleId}`, {
+    method: 'PUT',
+    headers,
+    body: formData,
+  });
+  if (!response.ok) throw new Error('Failed to update bundle');
+  return await response.json();
+}
