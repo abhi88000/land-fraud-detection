@@ -145,7 +145,10 @@ export async function fetchBundles(token?: string): Promise<{ bundles: Bundle[] 
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const response = await fetch(`${API_V1}/bundles`, { headers });
-  if (!response.ok) throw new Error('Failed to fetch bundles');
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to fetch bundles (${response.status})`);
+  }
   const result = await response.json();
   return { bundles: result.bundles || [] };
 }

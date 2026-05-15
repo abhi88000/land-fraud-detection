@@ -32,6 +32,7 @@ export default function DashboardPage() {
           const data = await fetchBundles(token);
           setBundles(data.bundles);
         } catch (err: any) {
+          console.error('Bundle fetch error:', err);
           setError(err.message || 'Failed to fetch bundles.');
         } finally {
           setLoading(false);

@@ -34,16 +34,28 @@ async def get_current_user(id_token: str = Depends(oauth2_scheme)) -> User:
 
     try:
         # Verify the ID token
-        decoded_token = auth.verify_id_token(id_token)
+        decoded_token = auth.verify_id_token(id_token, check_revoked=False)
         uid = decoded_token['uid']
         email = decoded_token.get('email')
         
         # You might fetch more user details from your database here if needed
         return User(uid=uid, email=email)
+    except auth.ExpiredIdTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired. Please sign in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except auth.InvalidIdTokenError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid token: {e}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid authentication credentials: {e}",
+            detail=f"Authentication failed: {e}",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

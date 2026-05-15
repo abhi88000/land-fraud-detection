@@ -18,7 +18,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN groupadd -r landguard && useradd -r -g landguard landguard
+RUN groupadd -r landguard && useradd -r -g landguard -m landguard
 
 COPY --from=builder /root/.local /home/landguard/.local
 COPY . .
