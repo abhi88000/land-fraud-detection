@@ -1,401 +1,603 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
   Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Collapse,
   IconButton,
-  Divider,
   Paper,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import WarningIcon from '@mui/icons-material/Warning';
-import GavelIcon from '@mui/icons-material/Gavel';
-import SecurityIcon from '@mui/icons-material/Security';
-import FolderOpenIcon from '@mui/icons-material/FolderOpen';
-import PlaceIcon from '@mui/icons-material/Place';
-import PersonIcon from '@mui/icons-material/Person';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import DescriptionIcon from '@mui/icons-material/Description';
+import PlaceIcon from '@mui/icons-material/Place';
 import LandscapeIcon from '@mui/icons-material/Landscape';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { AnalysisReport, LegalFinding, FraudFinding } from '@/lib/types';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import StraightenIcon from '@mui/icons-material/Straighten';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { AnalysisReport, LegalFinding, FraudFinding, Party } from '@/lib/types';
+
+type Severity = 'critical' | 'high' | 'medium' | 'low';
+
+interface UnifiedFinding {
+  id: string;
+  source: 'legal' | 'fraud';
+  severity: Severity;
+  title: string;
+  body: string;
+  recommendation: string | null;
+  evidence: string[];
+}
+
+const SEV_ORDER: Severity[] = ['critical', 'high', 'medium', 'low'];
+
+const SEV_STYLES: Record<Severity, { label: string; tone: string; tint: string; soft: string }> = {
+  critical: { label: 'Critical', tone: '#b71c1c', tint: '#fce8e6', soft: '#fef1f0' },
+  high:     { label: 'High',     tone: '#d93025', tint: '#fce8e6', soft: '#fef1f0' },
+  medium:   { label: 'Medium',   tone: '#b8860b', tint: '#fef7e0', soft: '#fdf8e6' },
+  low:      { label: 'Low',      tone: '#1a73e8', tint: '#e8f0fe', soft: '#f0f5ff' },
+};
+
+const sevOf = (s: string | undefined): Severity =>
+  (s && (['critical','high','medium','low'] as Severity[]).includes(s as Severity)) ? (s as Severity) : 'low';
+
+/** Format area, avoiding "15 Kanals 10 Marlas Kanals, Marlas"-style duplication. */
+function formatArea(area?: string, unit?: string): string | null {
+  const a = (area || '').trim();
+  const u = (unit || '').trim();
+  if (!a && !u) return null;
+  if (!a) return u;
+  if (!u) return a;
+  // If unit substrings already appear in the area text, drop the unit
+  const lowerA = a.toLowerCase();
+  const unitParts = u.split(/[,/]/).map(p => p.trim().toLowerCase()).filter(Boolean);
+  const allPresent = unitParts.every(p => p && lowerA.includes(p));
+  if (allPresent) return a;
+  return `${a} ${u}`;
+}
+
+function normaliseRole(role: string): 'seller' | 'buyer' | 'witness' | 'other' {
+  const r = (role || '').toLowerCase();
+  if (r.includes('sell') || r.includes('vend') && !r.includes('vendee')) return 'seller';
+  if (r.includes('vendor')) return 'seller';
+  if (r.includes('buy') || r.includes('vendee') || r.includes('purchas')) return 'buyer';
+  if (r.includes('witness')) return 'witness';
+  return 'other';
+}
 
 interface ReportDisplayProps {
   report: AnalysisReport;
 }
 
-const getSeverityBg = (severity: string): string => {
-  switch (severity) {
-    case 'critical': case 'high': return '#fce8e6';
-    case 'medium': return '#fef7e0';
-    case 'low': return '#e8f0fe';
-    default: return '#f1f3f4';
-  }
-};
-const getSeverityTextColor = (severity: string): string => {
-  switch (severity) {
-    case 'critical': case 'high': return '#d93025';
-    case 'medium': return '#e37400';
-    case 'low': return '#1a73e8';
-    default: return '#5f6368';
-  }
-};
-
-/* Expandable finding row */
-const FindingRow: React.FC<{
-  icon: React.ReactNode;
-  title: string;
-  severity: string;
-  detail?: string;
-  suggestion?: string;
-}> = ({ icon, title, severity, detail, suggestion }) => {
-  const [open, setOpen] = useState(false);
-  const hasDetail = detail || suggestion;
-  return (
-    <Box sx={{ borderBottom: '1px solid #f1f3f4', '&:last-child': { borderBottom: 0 } }}>
-      <Box
-        onClick={() => hasDetail && setOpen(!open)}
-        sx={{
-          display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 1,
-          cursor: hasDetail ? 'pointer' : 'default',
-          '&:hover': hasDetail ? { bgcolor: '#f8f9fa' } : {},
-          borderRadius: 1,
-        }}
-      >
-        {icon}
-        <Typography variant="body2" sx={{ flex: 1, color: '#202124', fontWeight: 500, fontSize: '0.85rem', lineHeight: 1.5 }}>
-          {title}
-        </Typography>
-        <Chip label={severity} size="small" sx={{
-          fontWeight: 600, fontSize: '0.65rem', height: 20,
-          bgcolor: getSeverityBg(severity), color: getSeverityTextColor(severity), border: 'none',
-        }} />
-        {hasDetail && (
-          <IconButton size="small" sx={{ ml: 0.25, p: 0.25 }}>
-            {open ? <KeyboardArrowUpIcon sx={{ fontSize: 18 }} /> : <KeyboardArrowDownIcon sx={{ fontSize: 18 }} />}
-          </IconButton>
-        )}
-      </Box>
-      {hasDetail && (
-        <Collapse in={open}>
-          <Box sx={{ pl: 5, pr: 2, pb: 1.5 }}>
-            {detail && <Typography variant="body2" sx={{ color: '#5f6368', fontSize: '0.8rem', lineHeight: 1.7 }}>{detail}</Typography>}
-            {suggestion && <Typography variant="body2" sx={{ color: '#1a73e8', fontSize: '0.8rem', mt: 0.75, fontWeight: 500 }}>💡 {suggestion}</Typography>}
-          </Box>
-        </Collapse>
-      )}
-    </Box>
-  );
-};
-
-/* Small info pill for extracted data */
-const InfoPill: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.75, px: 1.5, borderRadius: '10px', bgcolor: '#f8f9fa', minWidth: 0 }}>
-    {icon}
-    <Box sx={{ minWidth: 0 }}>
-      <Typography variant="caption" sx={{ color: '#80868b', fontSize: '0.65rem', display: 'block', lineHeight: 1 }}>{label}</Typography>
-      <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</Typography>
-    </Box>
-  </Box>
-);
-
 const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
-  const suspiciousFindings = report.fraud_findings.filter(f => f.is_suspicious);
-  const nonCompliantFindings = report.legal_findings.filter(f => !f.is_compliant);
-  const compliantFindings = report.legal_findings.filter(f => f.is_compliant);
-  const safeFindings = report.fraud_findings.filter(f => !f.is_suspicious);
-  const totalIssues = suspiciousFindings.length + nonCompliantFindings.length;
-  const totalOk = compliantFindings.length + safeFindings.length;
-
   const ed = report.extracted_data;
-  const state = ed?.property_details?.state;
-  const district = ed?.property_details?.district;
-  const landType = ed?.property_details?.land_type;
-  const location = [district, state].filter(Boolean).join(', ');
 
-  // Collect missing doc suggestions
-  const missingDocKeywords = ['obtain', 'get', 'collect', 'encumbrance', 'mutation', 'NOC', '7/12', 'khata', 'patta', 'RTC', 'extract', 'certificate'];
-  const missingDocSuggestions: string[] = [];
-  for (const f of [...report.fraud_findings, ...report.legal_findings]) {
-    const rec = ('recommendation' in f ? f.recommendation : ('remediation_suggestion' in f ? f.remediation_suggestion : null)) as string | null;
-    if (rec && missingDocKeywords.some(kw => rec.toLowerCase().includes(kw.toLowerCase()))) {
-      if (!missingDocSuggestions.includes(rec)) missingDocSuggestions.push(rec);
-    }
-  }
+  // Build a unified, deduped findings list ─────────────────────────────────
+  const findings: UnifiedFinding[] = useMemo(() => {
+    const out: UnifiedFinding[] = [];
+    const seen = new Set<string>();
 
-  // Area-specific findings
-  const areaKeywords = ['tribal', 'adivasi', 'scheduled', 'schedule v', 'schedule vi', 'forest', 'agricultural', 'ceiling', 'roshni', 'non-resident', 'inner line', 'sixth schedule', 'pesa', 'customary', 'tribunal', 'plantation'];
-  const areaFindings: { text: string; severity: string }[] = [];
-  for (const f of report.fraud_findings) {
-    if (areaKeywords.some(kw => f.description.toLowerCase().includes(kw) || (f.evidence || []).some(e => e.toLowerCase().includes(kw)))) {
-      areaFindings.push({ text: f.description, severity: f.severity });
+    for (const f of (report.legal_findings || []) as LegalFinding[]) {
+      if (f.is_compliant) continue;
+      const key = (f.description || '').trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        id: `l-${f.rule_id || out.length}`,
+        source: 'legal',
+        severity: sevOf(f.severity),
+        title: f.description || f.rule_id || 'Legal concern',
+        body: f.explanation || '',
+        recommendation: f.remediation_suggestion,
+        evidence: [],
+      });
     }
-  }
-  for (const f of report.legal_findings) {
-    if (areaKeywords.some(kw => f.description.toLowerCase().includes(kw) || f.explanation.toLowerCase().includes(kw))) {
-      areaFindings.push({ text: f.description, severity: f.severity });
+    for (const f of (report.fraud_findings || []) as FraudFinding[]) {
+      if (!f.is_suspicious) continue;
+      const key = (f.description || '').trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        id: `f-${f.fraud_type || out.length}`,
+        source: 'fraud',
+        severity: sevOf(f.severity),
+        title: f.description || f.fraud_type || 'Risk indicator',
+        body: '',
+        recommendation: f.recommendation,
+        evidence: f.evidence || [],
+      });
     }
-  }
+    // Sort by severity priority
+    out.sort((a, b) => SEV_ORDER.indexOf(a.severity) - SEV_ORDER.indexOf(b.severity));
+    return out;
+  }, [report]);
 
-  // Status color
-  const statusColor = totalIssues === 0 ? '#1e8e3e' : totalIssues <= 3 ? '#e37400' : '#d93025';
-  const statusBg = totalIssues === 0 ? '#e6f4ea' : totalIssues <= 3 ? '#fffbe6' : '#fce8e6';
-  const statusBorder = totalIssues === 0 ? '#b7e1cd' : totalIssues <= 3 ? '#fde293' : '#f5c6cb';
+  const partiesByRole = useMemo(() => {
+    const groups: Record<'seller' | 'buyer' | 'witness' | 'other', Party[]> = {
+      seller: [], buyer: [], witness: [], other: [],
+    };
+    for (const p of (ed?.party_names || [])) groups[normaliseRole(p.role)].push(p);
+    return groups;
+  }, [ed?.party_names]);
+
+  const partySummary = useMemo(() => {
+    const parts: string[] = [];
+    if (partiesByRole.seller.length)  parts.push(`${partiesByRole.seller.length} seller${partiesByRole.seller.length !== 1 ? 's' : ''}`);
+    if (partiesByRole.buyer.length)   parts.push(`${partiesByRole.buyer.length} buyer${partiesByRole.buyer.length !== 1 ? 's' : ''}`);
+    if (partiesByRole.witness.length) parts.push(`${partiesByRole.witness.length} witness${partiesByRole.witness.length !== 1 ? 'es' : ''}`);
+    if (partiesByRole.other.length)   parts.push(`${partiesByRole.other.length} other`);
+    return parts.join(' • ');
+  }, [partiesByRole]);
+
+  const docs = report.documents_analyzed || [];
+  const missing = report.missing_documents || [];
+  const checklist = report.verification_checklist || [];
+
+  const [tab, setTab] = useState(0);
+  const [sevFilter, setSevFilter] = useState<Severity | 'all'>('all');
+
+  const filteredFindings = sevFilter === 'all'
+    ? findings
+    : findings.filter(f => f.severity === sevFilter);
+
+  const sevCounts: Record<Severity, number> = { critical: 0, high: 0, medium: 0, low: 0 };
+  for (const f of findings) sevCounts[f.severity]++;
+
+  const location = [ed?.property_details?.district, ed?.property_details?.state].filter(Boolean).join(', ');
+  const areaText = formatArea(ed?.property_details?.area, ed?.property_details?.unit);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-
-      {/* ═══ Hero Status Banner ═══ */}
-      <Box sx={{
-        p: 3, borderRadius: '16px', bgcolor: statusBg, border: `1px solid ${statusBorder}`,
-        position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Decorative gradient */}
-        <Box sx={{
-          position: 'absolute', top: 0, right: 0, width: 200, height: '100%',
-          background: `linear-gradient(135deg, transparent 50%, ${statusColor}08 100%)`,
-        }} />
-
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, position: 'relative' }}>
-          {/* Status indicator */}
-          <Box sx={{
-            width: 48, height: 48, borderRadius: '14px', bgcolor: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)', flexShrink: 0,
-          }}>
-            {totalIssues === 0
-              ? <CheckCircleIcon sx={{ fontSize: 28, color: '#1e8e3e' }} />
-              : <WarningIcon sx={{ fontSize: 28, color: statusColor }} />
-            }
-          </Box>
-
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#202124', mb: 0.25 }}>
-              {totalIssues === 0
-                ? 'No major concerns found'
-                : `${totalIssues} area${totalIssues > 1 ? 's' : ''} need${totalIssues === 1 ? 's' : ''} your attention`
-              }
-            </Typography>
-
-            {/* Quick stats pills */}
-            <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
-              {totalIssues > 0 && (
-                <Chip icon={<WarningIcon sx={{ fontSize: '14px !important' }} />} label={`${totalIssues} to verify`} size="small"
-                  sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600, bgcolor: '#fff', color: statusColor, border: `1px solid ${statusBorder}` }} />
-              )}
-              {totalOk > 0 && (
-                <Chip icon={<CheckCircleIcon sx={{ fontSize: '14px !important' }} />} label={`${totalOk} passed`} size="small"
-                  sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600, bgcolor: '#fff', color: '#1e8e3e', border: '1px solid #b7e1cd' }} />
-              )}
-            </Box>
-
-            <Typography variant="body2" sx={{ color: '#3c4043', lineHeight: 1.7, fontSize: '0.85rem' }}>
-              {report.summary}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* ═══ Document Details Card ═══ */}
+      {/* ─── Property facts card ─── */}
       {ed && (
-        <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', border: '1px solid #e8eaed' }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, color: '#5f6368', textTransform: 'uppercase', letterSpacing: 0.5, mb: 1.5, display: 'block' }}>
-            Extracted Information
+        <Paper elevation={0} sx={{ p: 2.5, borderRadius: '16px', border: '1px solid #e8eaed', bgcolor: '#fff' }}>
+          <Typography sx={{
+            fontSize: '0.68rem', fontWeight: 600, color: '#5f6368',
+            textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5,
+          }}>
+            Property at a glance
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {ed.document_type && <InfoPill icon={<DescriptionIcon sx={{ fontSize: 16, color: '#1a73e8' }} />} label="Document" value={ed.document_type} />}
-            {location && <InfoPill icon={<PlaceIcon sx={{ fontSize: 16, color: '#e37400' }} />} label="Location" value={location} />}
-            {landType && <InfoPill icon={<LandscapeIcon sx={{ fontSize: 16, color: '#1e8e3e' }} />} label="Land Type" value={landType} />}
-            {ed.property_details?.area && (
-              <InfoPill icon={<LandscapeIcon sx={{ fontSize: 16, color: '#9334e6' }} />} label="Area" value={`${ed.property_details.area} ${ed.property_details.unit || ''}`} />
-            )}
-            {ed.stamp_duty_amount && <InfoPill icon={<InfoOutlinedIcon sx={{ fontSize: 16, color: '#e37400' }} />} label="Stamp Duty" value={ed.stamp_duty_amount} />}
-            {ed.dates?.registration_date && <InfoPill icon={<CalendarTodayIcon sx={{ fontSize: 16, color: '#5f6368' }} />} label="Registration" value={ed.dates.registration_date} />}
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(6, 1fr)' },
+            gap: 1.5,
+          }}>
+            <Fact icon={<DescriptionIcon sx={{ fontSize: 16 }} />} label="Document" value={ed.document_type || '—'} />
+            <Fact icon={<PlaceIcon       sx={{ fontSize: 16 }} />} label="Location" value={location || '—'} />
+            <Fact icon={<LandscapeIcon   sx={{ fontSize: 16 }} />} label="Land type" value={ed.property_details?.land_type || '—'} />
+            <Fact icon={<StraightenIcon  sx={{ fontSize: 16 }} />} label="Area" value={areaText || '—'} />
+            <Fact icon={<ReceiptLongIcon sx={{ fontSize: 16 }} />} label="Stamp duty" value={ed.stamp_duty_amount || '—'} />
+            <Fact icon={<CalendarTodayIcon sx={{ fontSize: 16 }} />} label="Registration" value={ed.dates?.registration_date || '—'} />
           </Box>
-
-          {/* Parties */}
-          {ed.party_names?.length > 0 && (
-            <Box sx={{ mt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {ed.party_names.map((p, i) => (
-                <Chip key={i} icon={<PersonIcon sx={{ fontSize: '14px !important' }} />}
-                  label={`${p.name} (${p.role})`} size="small"
-                  sx={{ fontSize: '0.75rem', bgcolor: '#f8f9fa', color: '#3c4043', border: '1px solid #e8eaed' }} />
-              ))}
+          {partySummary && (
+            <Box sx={{ mt: 1.75, pt: 1.5, borderTop: '1px solid #f1f3f4', display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <Typography sx={{ fontSize: '0.72rem', color: '#5f6368', fontWeight: 500 }}>Parties</Typography>
+              <Typography sx={{ fontSize: '0.8rem', color: '#202124', fontWeight: 500 }}>
+                {(ed.party_names?.length || 0)} total
+              </Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: '#80868b' }}>· {partySummary}</Typography>
             </Box>
           )}
         </Paper>
       )}
 
-      {/* ═══ Documents in this Bundle ═══ */}
-      {report.documents_analyzed && report.documents_analyzed.length > 0 && (
-        <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', border: '1px solid #e8eaed' }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, color: '#5f6368', textTransform: 'uppercase', letterSpacing: 0.5, mb: 1.5, display: 'block' }}>
-            Documents Analyzed ({report.documents_analyzed.length})
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-            {report.documents_analyzed.map((doc, i) => (
-              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.75, px: 1, borderRadius: '8px', bgcolor: '#f8f9fa' }}>
-                <CheckCircleIcon sx={{ fontSize: 16, color: '#1e8e3e' }} />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {doc.file_name}
-                  </Typography>
-                  {doc.document_type && (
-                    <Typography variant="caption" sx={{ color: '#80868b', fontSize: '0.7rem' }}>
-                      Detected as: {doc.document_type}
-                    </Typography>
-                  )}
+      {/* ─── Tabs ─── */}
+      <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e8eaed', overflow: 'hidden' }}>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          sx={{
+            px: 1.5, minHeight: 44, borderBottom: '1px solid #e8eaed',
+            '& .MuiTab-root': {
+              textTransform: 'none', fontWeight: 500, fontSize: '0.82rem',
+              minHeight: 44, color: '#5f6368', px: 1.5,
+            },
+            '& .Mui-selected': { color: '#1a73e8 !important', fontWeight: 600 },
+            '& .MuiTabs-indicator': { height: 2, bgcolor: '#1a73e8' },
+          }}
+        >
+          <Tab label={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              Findings
+              {findings.length > 0 && (
+                <Box sx={{ px: 0.75, py: 0.05, fontSize: '0.65rem', fontWeight: 700, borderRadius: '999px', bgcolor: '#fce8e6', color: '#d93025' }}>
+                  {findings.length}
                 </Box>
-              </Box>
-            ))}
-          </Box>
-        </Paper>
-      )}
+              )}
+            </Box>
+          } />
+          <Tab label={`Documents (${docs.length + missing.length})`} />
+          <Tab label={`Checklist (${checklist.length})`} />
+          <Tab label="Parties" />
+        </Tabs>
 
-      {/* ═══ Missing Documents (server-identified) ═══ */}
-      {report.missing_documents && report.missing_documents.length > 0 && (
-        <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', bgcolor: '#fce8e6', border: '1px solid #f5c6cb' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FolderOpenIcon sx={{ fontSize: 16, color: '#d93025' }} />
-            </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#d93025' }}>
-              Missing Documents — You Should Obtain These
-            </Typography>
-          </Box>
-          {report.missing_documents.map((doc, i) => (
-            <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 0.75, '&:last-child': { mb: 0 } }}>
-              <CancelIcon sx={{ fontSize: 14, color: '#d93025', mt: 0.3 }} />
-              <Typography variant="body2" sx={{ color: '#5f2120', fontSize: '0.82rem', lineHeight: 1.5 }}>{doc}</Typography>
-            </Box>
-          ))}
-        </Paper>
-      )}
+        <Box sx={{ p: 2 }}>
+          {/* ─── Findings ─── */}
+          {tab === 0 && (
+            <Box>
+              {findings.length === 0 ? (
+                <EmptyState text="No major concerns surfaced. Always cross-check with your local sub-registrar before proceeding." />
+              ) : (
+                <>
+                  {/* Severity filter chips */}
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+                    <FilterChip label={`All ${findings.length}`} active={sevFilter === 'all'} onClick={() => setSevFilter('all')} />
+                    {SEV_ORDER.map(s => sevCounts[s] > 0 && (
+                      <FilterChip key={s}
+                        label={`${SEV_STYLES[s].label} ${sevCounts[s]}`}
+                        active={sevFilter === s}
+                        tone={SEV_STYLES[s].tone}
+                        tint={SEV_STYLES[s].tint}
+                        onClick={() => setSevFilter(s)}
+                      />
+                    ))}
+                  </Box>
 
-      {/* ═══ Area-Specific Alerts ═══ */}
-      {areaFindings.length > 0 && (
-        <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', bgcolor: '#fff3e0', border: '1px solid #ffe0b2' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <PlaceIcon sx={{ fontSize: 16, color: '#e65100' }} />
+                  {/* Cards */}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {filteredFindings.map(f => <FindingCard key={f.id} f={f} />)}
+                  </Box>
+                </>
+              )}
             </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#e65100' }}>
-              Area-specific concerns — {location || 'this region'}
-            </Typography>
-          </Box>
-          {areaFindings.map((f, i) => (
-            <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1, '&:last-child': { mb: 0 } }}>
-              <WarningIcon sx={{ fontSize: 14, color: getSeverityTextColor(f.severity), mt: 0.3 }} />
-              <Typography variant="body2" sx={{ color: '#3c4043', fontSize: '0.82rem', lineHeight: 1.5 }}>{f.text}</Typography>
-            </Box>
-          ))}
-        </Paper>
-      )}
-
-      {/* ═══ Additional Document Suggestions (from AI findings) ═══ */}
-      {missingDocSuggestions.length > 0 && (
-        <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', bgcolor: '#e8f0fe', border: '1px solid #c2d7fe' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FolderOpenIcon sx={{ fontSize: 16, color: '#1a73e8' }} />
-            </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a73e8' }}>
-              Documents you should obtain
-            </Typography>
-          </Box>
-          {missingDocSuggestions.slice(0, 6).map((s, i) => (
-            <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 0.75, '&:last-child': { mb: 0 } }}>
-              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#1a73e8', mt: 0.75, flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ color: '#174ea6', fontSize: '0.82rem', lineHeight: 1.5 }}>{s}</Typography>
-            </Box>
-          ))}
-        </Paper>
-      )}
-
-      {/* ═══ What to Verify (Fraud) ═══ */}
-      <Accordion
-        defaultExpanded={suspiciousFindings.length > 0}
-        disableGutters elevation={0}
-        sx={{ border: '1px solid #e8eaed', borderRadius: '14px !important', '&:before': { display: 'none' }, overflow: 'hidden' }}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2, py: 0.5 }}>
-          <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#fef7e0', display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1.5 }}>
-            <SecurityIcon sx={{ fontSize: 16, color: '#e37400' }} />
-          </Box>
-          <Typography fontWeight={600} sx={{ color: '#202124', flex: 1 }}>What to verify</Typography>
-          {suspiciousFindings.length > 0 && (
-            <Chip label={`${suspiciousFindings.length} issue${suspiciousFindings.length > 1 ? 's' : ''}`} size="small"
-              sx={{ height: 20, fontSize: '0.65rem', fontWeight: 600, bgcolor: '#fce8e6', color: '#d93025' }} />
           )}
-        </AccordionSummary>
-        <AccordionDetails sx={{ px: 2, pt: 0, pb: 1 }}>
-          {report.fraud_findings.length === 0 ? (
-            <Typography variant="body2" sx={{ color: '#80868b', py: 1 }}>No areas of concern found.</Typography>
-          ) : (
-            report.fraud_findings.map((f: FraudFinding, i: number) => (
-              <FindingRow key={i}
-                icon={f.is_suspicious ? <WarningIcon sx={{ fontSize: 18, color: '#e37400' }} /> : <CheckCircleIcon sx={{ fontSize: 18, color: '#1e8e3e' }} />}
-                title={f.description} severity={f.severity}
-                detail={f.evidence?.length > 0 ? f.evidence.join('; ') : undefined}
-                suggestion={f.recommendation}
-              />
-            ))
-          )}
-        </AccordionDetails>
-      </Accordion>
 
-      {/* ═══ Legal Checks ═══ */}
-      <Accordion
-        defaultExpanded={nonCompliantFindings.length > 0}
-        disableGutters elevation={0}
-        sx={{ border: '1px solid #e8eaed', borderRadius: '14px !important', '&:before': { display: 'none' }, overflow: 'hidden' }}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2, py: 0.5 }}>
-          <Box sx={{ width: 28, height: 28, borderRadius: '8px', bgcolor: '#e8f0fe', display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1.5 }}>
-            <GavelIcon sx={{ fontSize: 16, color: '#1a73e8' }} />
-          </Box>
-          <Typography fontWeight={600} sx={{ color: '#202124', flex: 1 }}>Legal checks</Typography>
-          {nonCompliantFindings.length > 0 && (
-            <Chip label={`${nonCompliantFindings.length} issue${nonCompliantFindings.length > 1 ? 's' : ''}`} size="small"
-              sx={{ height: 20, fontSize: '0.65rem', fontWeight: 600, bgcolor: '#fce8e6', color: '#d93025' }} />
+          {/* ─── Documents ─── */}
+          {tab === 1 && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+              <DocsBlock title={`Analyzed (${docs.length})`} tone="#1e8e3e" tint="#e6f4ea">
+                {docs.length === 0 ? (
+                  <Muted>No documents analyzed.</Muted>
+                ) : (
+                  docs.map((d, i) => (
+                    <DocRow key={i} present file={d.file_name} subtitle={d.document_type ? `Detected as ${d.document_type}` : undefined} />
+                  ))
+                )}
+              </DocsBlock>
+              <DocsBlock title={`Recommended to obtain (${missing.length})`} tone="#b8860b" tint="#fef7e0">
+                {missing.length === 0 ? (
+                  <Muted>Nothing else flagged. You appear to have the essentials.</Muted>
+                ) : (
+                  missing.map((m, i) => <DocRow key={i} file={m} />)
+                )}
+              </DocsBlock>
+            </Box>
           )}
-        </AccordionSummary>
-        <AccordionDetails sx={{ px: 2, pt: 0, pb: 1 }}>
-          {report.legal_findings.length === 0 ? (
-            <Typography variant="body2" sx={{ color: '#80868b', py: 1 }}>No legal findings.</Typography>
-          ) : (
-            report.legal_findings.map((f: LegalFinding, i: number) => (
-              <FindingRow key={i}
-                icon={f.is_compliant ? <CheckCircleIcon sx={{ fontSize: 18, color: '#1e8e3e' }} /> : <CancelIcon sx={{ fontSize: 18, color: '#d93025' }} />}
-                title={f.description} severity={f.severity}
-                detail={f.explanation} suggestion={f.remediation_suggestion}
-              />
-            ))
-          )}
-        </AccordionDetails>
-      </Accordion>
 
-      {/* ═══ Disclaimer ═══ */}
-      <Box sx={{ p: 2, borderRadius: '14px', bgcolor: '#f8f9fa', border: '1px solid #e8eaed' }}>
-        <Typography variant="caption" sx={{ color: '#5f6368', lineHeight: 1.6 }}>
-          <strong>Disclaimer:</strong> This is an AI-assisted review to help you identify areas worth verifying. It is NOT a legal opinion or certification. Your documents may be perfectly valid. Always consult a qualified property lawyer or visit your local sub-registrar office before making any decisions.
+          {/* ─── Checklist ─── */}
+          {tab === 2 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+              {checklist.length === 0 ? (
+                <Muted>No checklist available.</Muted>
+              ) : (
+                checklist.map((c, i) => <ChecklistRow key={i} item={c} />)
+              )}
+            </Box>
+          )}
+
+          {/* ─── Parties ─── */}
+          {tab === 3 && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+              <PartyColumn title="Sellers"   accent="#d93025" people={partiesByRole.seller} />
+              <PartyColumn title="Buyers"    accent="#1e8e3e" people={partiesByRole.buyer} />
+              <PartyColumn title="Witnesses" accent="#5f6368" people={partiesByRole.witness} />
+              {partiesByRole.other.length > 0 && (
+                <PartyColumn title="Other parties" accent="#5f6368" people={partiesByRole.other} />
+              )}
+            </Box>
+          )}
+        </Box>
+      </Paper>
+
+      {/* ─── Footer disclaimer ─── */}
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, px: 0.5 }}>
+        <ErrorOutlineIcon sx={{ fontSize: 14, color: '#80868b', mt: 0.2 }} />
+        <Typography sx={{ fontSize: '0.72rem', color: '#80868b', lineHeight: 1.55 }}>
+          AI-assisted review to highlight areas worth verifying — not a legal opinion. Always consult a qualified property lawyer or your local sub-registrar before any decision.
+          {report.generated_at && <> · Generated {new Date(report.generated_at).toLocaleString()}</>}
         </Typography>
       </Box>
-      <Typography variant="caption" sx={{ color: '#80868b', textAlign: 'right' }}>
-        Generated {new Date(report.generated_at).toLocaleString()}
-      </Typography>
     </Box>
   );
 };
 
 export default ReportDisplay;
+
+/* ─────────────────────── Sub-components ─────────────────────── */
+
+function Fact({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25, color: '#5f6368' }}>
+        {icon}
+        <Typography sx={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+          {label}
+        </Typography>
+      </Box>
+      <Typography sx={{
+        fontSize: '0.85rem', color: '#202124', fontWeight: 500,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {value}
+      </Typography>
+    </Box>
+  );
+}
+
+function FilterChip({ label, active, onClick, tone, tint }: { label: string; active: boolean; onClick: () => void; tone?: string; tint?: string }) {
+  const t = tone || '#1a73e8';
+  const bg = tint || '#e8f0fe';
+  return (
+    <Box
+      onClick={onClick}
+      sx={{
+        px: 1.25, py: 0.4, borderRadius: '100px', cursor: 'pointer',
+        fontSize: '0.72rem', fontWeight: 600,
+        border: `1px solid ${active ? t : '#e8eaed'}`,
+        bgcolor: active ? bg : '#fff',
+        color: active ? t : '#5f6368',
+        userSelect: 'none',
+        transition: 'all 0.18s ease',
+        '&:hover': { borderColor: t, color: t },
+      }}
+    >
+      {label}
+    </Box>
+  );
+}
+
+function FindingCard({ f }: { f: UnifiedFinding }) {
+  const [open, setOpen] = useState(false);
+  const s = SEV_STYLES[f.severity];
+  const hasBody = !!(f.body || f.recommendation || (f.evidence && f.evidence.length));
+
+  return (
+    <Box
+      sx={{
+        borderRadius: '12px',
+        border: '1px solid #e8eaed',
+        bgcolor: '#fff',
+        overflow: 'hidden',
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+        '&:hover': { borderColor: '#dadce0' },
+      }}
+    >
+      <Box
+        onClick={() => hasBody && setOpen(o => !o)}
+        sx={{
+          display: 'flex', alignItems: 'flex-start', gap: 1.25, p: 1.5,
+          cursor: hasBody ? 'pointer' : 'default',
+          position: 'relative',
+        }}
+      >
+        {/* Severity stripe */}
+        <Box sx={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, bgcolor: s.tone }} />
+        <Box sx={{ pl: 0.5, flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.4, flexWrap: 'wrap' }}>
+            <Chip
+              label={s.label}
+              size="small"
+              sx={{
+                height: 18, fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.03em',
+                bgcolor: s.tint, color: s.tone, borderRadius: '4px',
+              }}
+            />
+            <Typography sx={{
+              fontSize: '0.65rem', fontWeight: 500, color: '#80868b',
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+            }}>
+              {f.source === 'legal' ? 'Legal' : 'Risk indicator'}
+            </Typography>
+          </Box>
+          <Typography sx={{ fontSize: '0.86rem', color: '#202124', fontWeight: 500, lineHeight: 1.45 }}>
+            {f.title}
+          </Typography>
+        </Box>
+        {hasBody && (
+          <IconButton size="small" sx={{ p: 0.5 }}>
+            <KeyboardArrowDownIcon sx={{
+              fontSize: 18, color: '#5f6368',
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease',
+            }} />
+          </IconButton>
+        )}
+      </Box>
+      {hasBody && (
+        <Collapse in={open}>
+          <Box sx={{ px: 2, pb: 1.75, pt: 0, ml: 0.5 }}>
+            {f.body && (
+              <Typography sx={{ fontSize: '0.8rem', color: '#3c4043', lineHeight: 1.65, mb: f.recommendation ? 1.25 : 0 }}>
+                {f.body}
+              </Typography>
+            )}
+            {f.evidence && f.evidence.length > 0 && (
+              <Box sx={{ mb: f.recommendation ? 1.25 : 0 }}>
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#5f6368', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
+                  Evidence
+                </Typography>
+                {f.evidence.map((e, i) => (
+                  <Typography key={i} sx={{ fontSize: '0.78rem', color: '#5f6368', lineHeight: 1.55, mb: 0.25 }}>
+                    · {e}
+                  </Typography>
+                ))}
+              </Box>
+            )}
+            {f.recommendation && (
+              <Box sx={{
+                p: 1.25, borderRadius: '10px', bgcolor: '#f0f5ff', border: '1px solid #dde6fa',
+              }}>
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#1a73e8', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
+                  What to do
+                </Typography>
+                <Typography sx={{ fontSize: '0.8rem', color: '#202124', lineHeight: 1.6 }}>
+                  {f.recommendation}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Collapse>
+      )}
+    </Box>
+  );
+}
+
+function DocsBlock({ title, tone, tint, children }: { title: string; tone: string; tint: string; children: React.ReactNode }) {
+  return (
+    <Box sx={{ borderRadius: '12px', border: '1px solid #e8eaed', overflow: 'hidden' }}>
+      <Box sx={{ px: 1.5, py: 1, bgcolor: tint, borderBottom: `1px solid ${tint}` }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: tone, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {title}
+        </Typography>
+      </Box>
+      <Box sx={{ p: 1 }}>
+        {children}
+      </Box>
+    </Box>
+  );
+}
+
+function DocRow({ file, subtitle, present }: { file: string; subtitle?: string; present?: boolean }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, borderRadius: '8px', '&:hover': { bgcolor: '#f8f9fa' } }}>
+      <Box sx={{
+        width: 24, height: 24, borderRadius: '6px',
+        bgcolor: present ? '#e6f4ea' : '#f1f3f4',
+        color: present ? '#1e8e3e' : '#80868b',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        {present
+          ? <CheckCircleIcon sx={{ fontSize: 16 }} />
+          : <InsertDriveFileIcon sx={{ fontSize: 14 }} />}
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{
+          fontSize: '0.8rem', color: '#202124', fontWeight: 500,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {file}
+        </Typography>
+        {subtitle && (
+          <Typography sx={{ fontSize: '0.7rem', color: '#80868b' }}>{subtitle}</Typography>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+function ChecklistRow({ item }: { item: { item: string; is_checked: boolean; details?: string } }) {
+  const [open, setOpen] = useState(false);
+  const hasDetails = !!item.details;
+  return (
+    <Box
+      sx={{
+        borderRadius: '10px',
+        border: '1px solid #e8eaed',
+        bgcolor: item.is_checked ? '#f7fcf9' : '#fff',
+        overflow: 'hidden',
+      }}
+    >
+      <Box
+        onClick={() => hasDetails && setOpen(o => !o)}
+        sx={{
+          display: 'flex', alignItems: 'center', gap: 1.25, p: 1.25,
+          cursor: hasDetails ? 'pointer' : 'default',
+        }}
+      >
+        {item.is_checked
+          ? <CheckCircleIcon sx={{ fontSize: 20, color: '#1e8e3e' }} />
+          : <RadioButtonUncheckedIcon sx={{ fontSize: 20, color: '#dadce0' }} />}
+        <Typography sx={{
+          flex: 1, fontSize: '0.82rem',
+          color: item.is_checked ? '#3c4043' : '#202124',
+          fontWeight: 500, lineHeight: 1.5,
+        }}>
+          {item.item}
+        </Typography>
+        {hasDetails && (
+          <KeyboardArrowDownIcon sx={{
+            fontSize: 18, color: '#80868b',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease',
+          }} />
+        )}
+      </Box>
+      {hasDetails && (
+        <Collapse in={open}>
+          <Box sx={{ px: 1.75, pb: 1.25, pl: 5 }}>
+            <Typography sx={{ fontSize: '0.78rem', color: '#5f6368', lineHeight: 1.6 }}>
+              {item.details}
+            </Typography>
+          </Box>
+        </Collapse>
+      )}
+    </Box>
+  );
+}
+
+function PartyColumn({ title, accent, people }: { title: string; accent: string; people: Party[] }) {
+  if (people.length === 0) {
+    return (
+      <Box sx={{ borderRadius: '12px', border: '1px solid #e8eaed', p: 1.5 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
+          {title}
+        </Typography>
+        <Muted>None listed.</Muted>
+      </Box>
+    );
+  }
+  return (
+    <Box sx={{ borderRadius: '12px', border: '1px solid #e8eaed', overflow: 'hidden' }}>
+      <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid #f1f3f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {title}
+        </Typography>
+        <Typography sx={{ fontSize: '0.7rem', color: '#80868b' }}>{people.length}</Typography>
+      </Box>
+      <Box sx={{ p: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        {people.map((p, i) => (
+          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 0.75, borderRadius: '8px', '&:hover': { bgcolor: '#f8f9fa' } }}>
+            <Box sx={{
+              width: 28, height: 28, borderRadius: '50%',
+              bgcolor: '#f1f3f4', color: '#3c4043',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.72rem', fontWeight: 600, flexShrink: 0,
+            }}>
+              {p.name.replace(/^Shri\.?\s+|^M\/s\.?\s+|^Smt\.?\s+/i, '').trim().charAt(0).toUpperCase()}
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ fontSize: '0.8rem', color: '#202124', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {p.name}
+              </Typography>
+              {p.role && p.role.toLowerCase() !== title.toLowerCase().slice(0, -1) && (
+                <Typography sx={{ fontSize: '0.68rem', color: '#80868b' }}>{p.role}</Typography>
+              )}
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <Box sx={{ py: 4, textAlign: 'center' }}>
+      <CheckCircleIcon sx={{ fontSize: 32, color: '#1e8e3e', mb: 1 }} />
+      <Typography sx={{ fontSize: '0.85rem', color: '#3c4043', fontWeight: 500 }}>{text}</Typography>
+    </Box>
+  );
+}
+
+function Muted({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography sx={{ fontSize: '0.78rem', color: '#80868b', py: 1, px: 1 }}>{children}</Typography>
+  );
+}
