@@ -230,15 +230,27 @@ const DocumentList: React.FC<DocumentListProps> = ({ bundles, onDelete, onAnalys
                 </Tooltip>
               )}
               {bundle.status === BundleStatus.COMPLETED && (
-                <Tooltip title="View Report">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => { e.stopPropagation(); router.push(`/bundles/${bundle.id}`); }}
-                    sx={{ color: '#1a73e8' }}
-                  >
-                    <ArrowForwardIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                <>
+                  <Tooltip title="Re-analyze">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); handleRetry(bundle.id); }}
+                      disabled={analyzing === bundle.id}
+                      sx={{ color: '#5f6368', '&:hover': { color: '#1a73e8' } }}
+                    >
+                      <ReplayIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="View Report">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); router.push(`/bundles/${bundle.id}`); }}
+                      sx={{ color: '#1a73e8' }}
+                    >
+                      <ArrowForwardIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </>
               )}
               {bundle.status === BundleStatus.ANALYZING && (
                 <Tooltip title="View Progress">
@@ -270,7 +282,7 @@ const DocumentList: React.FC<DocumentListProps> = ({ bundles, onDelete, onAnalys
                   </Button>
                 </Tooltip>
               )}
-              {(bundle.status === BundleStatus.CREATED || bundle.status === BundleStatus.FAILED) && (
+              {bundle.status !== BundleStatus.ANALYZING && (
                 <Tooltip title="Edit Bundle">
                   <IconButton
                     size="small"

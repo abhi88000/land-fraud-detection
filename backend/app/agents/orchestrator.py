@@ -333,7 +333,9 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
                 combined.property_details.survey_numbers = all_survey_numbers
             # Add document types found as context
             doc_types_found = [s.document_type for s in doc_summaries if s.document_type]
-            combined.document_type = ", ".join(doc_types_found) if doc_types_found else combined.document_type
+            # Deduplicate while preserving order
+            unique_doc_types = list(dict.fromkeys(doc_types_found))
+            combined.document_type = ", ".join(unique_doc_types) if unique_doc_types else combined.document_type
 
             # 4. Run legal and fraud checks in parallel on combined data
             # Use bundle_id as the progress tracking ID
