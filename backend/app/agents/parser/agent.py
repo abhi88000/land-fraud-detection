@@ -79,7 +79,7 @@ class DocumentParserAgent(BaseAgent[str, ExtractedData]):
 
             # Call Gemini for multimodal document analysis (async)
             response = await self.client.aio.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-2.0-flash",
                 contents=[
                     types.Content(
                         role="user",

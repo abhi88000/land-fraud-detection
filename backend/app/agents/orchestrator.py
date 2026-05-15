@@ -229,7 +229,7 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
             logger.warning(f"Post-analysis tasks failed for {document_id}: {e}")
 
     async def _update_bundle_progress(self, bundle_id: str, message: str, progress: int, event_type: str, data: dict = None):
-        """Update progress for a bundle analysis via Firestore events."""
+        """Update progress for a bundle analysis via Firestore events (fire-and-forget)."""
         event_data = {
             "event_type": event_type,
             "message": message,
@@ -237,7 +237,8 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
             "data": data or {},
             "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
         }
-        await firestore.add_bundle_event(bundle_id, event_data)
+        # Fire-and-forget — don't block analysis pipeline
+        asyncio.create_task(firestore.add_bundle_event(bundle_id, event_data))
 
     async def analyze_bundle(self, bundle_id: str):
         """
@@ -267,26 +268,21 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
 
             async def parse_one(doc: Document, idx: int):
                 extracted = None
-                # Check cache layers
-                cached = await redis_cache.get_cached_ocr(doc.id)
-                if cached:
-                    extracted = ExtractedData(**cached)
-                else:
+                # Check Firestore cache (Redis likely disabled)
+                try:
                     doc_entry = await firestore.get_document_entry(doc.id)
                     if doc_entry and doc_entry.get("cached_extracted_data"):
                         extracted = ExtractedData(**doc_entry["cached_extracted_data"])
-                        await redis_cache.set_cached_ocr(doc.id, doc_entry["cached_extracted_data"])
+                except Exception:
+                    pass
 
                 if not extracted:
                     extracted = await self.parser_agent.run(doc.gcs_path, doc.id)
+                    # Cache in background — don't block
                     extracted_dict = json.loads(extracted.model_dump_json())
-                    try:
-                        await asyncio.gather(
-                            firestore.update_document_entry(doc.id, {"cached_extracted_data": extracted_dict}),
-                            redis_cache.set_cached_ocr(doc.id, extracted_dict),
-                        )
-                    except Exception:
-                        pass
+                    asyncio.create_task(
+                        firestore.update_document_entry(doc.id, {"cached_extracted_data": extracted_dict})
+                    )
 
                 # Override location from bundle
                 if extracted.property_details:
