@@ -8,6 +8,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchBundleDetails, fetchBundleReport } from '@/lib/api';
 import { Bundle, BundleStatus, AnalysisReport, AnalysisProgressEvent } from '@/lib/types';
 import ReportDisplay from '@/components/analysis/ReportDisplay';
+import AgentTimeline from '@/components/analysis/AgentTimeline';
+import VerdictReveal from '@/components/analysis/VerdictReveal';
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import FolderIcon from '@mui/icons-material/Folder';
@@ -222,28 +224,21 @@ export default function BundleDetailPage() {
             })}
           </Box>
 
-          <Typography variant="body2" sx={{ color: '#3c4043', textAlign: 'center', fontWeight: 500 }}>
+          <Typography variant="body2" sx={{ color: '#3c4043', textAlign: 'center', fontWeight: 500, mb: 2 }}>
             {analysisMessage}
           </Typography>
 
-          {liveEvents.length > 0 && (
-            <Box sx={{ mt: 2, maxHeight: 160, overflowY: 'auto', p: 1.5, borderRadius: '10px', bgcolor: '#f8f9fa' }}>
-              {liveEvents.slice(-6).map((event, index) => (
-                <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, '&:last-child': { mb: 0 } }}>
-                  <Box sx={{
-                    width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                    bgcolor: event.event_type.includes('failed') ? '#d93025' : event.event_type.includes('completed') ? '#1e8e3e' : '#1a73e8',
-                  }} />
-                  <Typography variant="caption" sx={{ color: '#5f6368', fontSize: '0.75rem' }}>{event.message}</Typography>
-                </Box>
-              ))}
-            </Box>
-          )}
+          <AgentTimeline events={liveEvents} active={isAnalyzing} />
         </Paper>
       )}
 
       {/* Report */}
-      {report && <ReportDisplay report={report} />}
+      {report && (
+        <>
+          <VerdictReveal report={report} />
+          <ReportDisplay report={report} />
+        </>
+      )}
 
       {!report && bundle.status === BundleStatus.COMPLETED && (
         <Alert severity="warning" sx={{ borderRadius: '14px' }}>Analysis completed but the report could not be loaded.</Alert>

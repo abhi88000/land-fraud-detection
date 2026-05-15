@@ -240,6 +240,16 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
         # Fire-and-forget — don't block analysis pipeline
         asyncio.create_task(firestore.add_bundle_event(bundle_id, event_data))
 
+    async def _thought(self, bundle_id: str, agent: str, message: str, progress: int):
+        """Emit a first-person 'agent thinking' event to the bundle stream."""
+        await self._update_bundle_progress(
+            bundle_id,
+            message,
+            progress,
+            "agent_thought",
+            data={"agent": agent},
+        )
+
     async def analyze_bundle(self, bundle_id: str):
         """
         Analyze all documents in a bundle together.
@@ -260,7 +270,19 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
                 raise ValueError(f"No documents found in bundle {bundle_id}.")
             documents = [Document(**d) for d in docs_data]
 
+            await self._thought(
+                bundle_id,
+                "Orchestrator",
+                f"Coordinating review of {len(documents)} document{'s' if len(documents) != 1 else ''} for {bundle.land_type or 'land'} in {bundle.district or 'this district'}, {bundle.state or 'India'}.",
+                8,
+            )
             await self._update_bundle_progress(bundle_id, f"Parsing {len(documents)} documents...", 10, "parsing_started")
+            await self._thought(
+                bundle_id,
+                "Parser",
+                f"Reading {len(documents)} file{'s' if len(documents) != 1 else ''} and extracting parties, survey numbers, dates and registration details.",
+                12,
+            )
 
             # 2. Parse each document (parallel with caching)
             doc_summaries: list[DocumentSummary] = []
@@ -273,16 +295,53 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
                     doc_entry = await firestore.get_document_entry(doc.id)
                     if doc_entry and doc_entry.get("cached_extracted_data"):
                         extracted = ExtractedData(**doc_entry["cached_extracted_data"])
+                        await self._thought(
+                            bundle_id,
+                            "Parser",
+                            f"Loaded '{doc.file_name}' from cache — already parsed earlier.",
+                            15 + idx,
+                        )
                 except Exception:
                     pass
 
                 if not extracted:
+                    await self._thought(
+                        bundle_id,
+                        "Parser",
+                        f"Reading '{doc.file_name}'...",
+                        15 + idx,
+                    )
                     extracted = await self.parser_agent.run(doc.gcs_path, doc.id)
                     # Cache in background — don't block
                     extracted_dict = json.loads(extracted.model_dump_json())
                     asyncio.create_task(
                         firestore.update_document_entry(doc.id, {"cached_extracted_data": extracted_dict})
                     )
+
+                # Emit a finding-style thought summarising what was extracted
+                try:
+                    party_count = len(extracted.party_names) if extracted.party_names else 0
+                    survey_count = (
+                        len(extracted.property_details.survey_numbers)
+                        if extracted.property_details and extracted.property_details.survey_numbers
+                        else 0
+                    )
+                    summary_bits = []
+                    if extracted.document_type:
+                        summary_bits.append(f"identified as {extracted.document_type}")
+                    if party_count:
+                        summary_bits.append(f"{party_count} part{'ies' if party_count != 1 else 'y'}")
+                    if survey_count:
+                        summary_bits.append(f"{survey_count} survey number{'s' if survey_count != 1 else ''}")
+                    if summary_bits:
+                        await self._thought(
+                            bundle_id,
+                            "Parser",
+                            f"'{doc.file_name}' — {', '.join(summary_bits)}.",
+                            18 + idx,
+                        )
+                except Exception:
+                    pass
 
                 # Override location from bundle
                 if extracted.property_details:
@@ -337,6 +396,26 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
             unique_doc_types = list(dict.fromkeys(doc_types_found))
             combined.document_type = ", ".join(unique_doc_types) if unique_doc_types else combined.document_type
 
+            await self._thought(
+                bundle_id,
+                "Orchestrator",
+                f"Combined view: {len(all_parties)} unique part{'ies' if len(all_parties) != 1 else 'y'}, {len(all_survey_numbers)} survey number{'s' if len(all_survey_numbers) != 1 else ''} across {len(all_extracted)} document{'s' if len(all_extracted) != 1 else ''}.",
+                42,
+            )
+            await self._thought(
+                bundle_id,
+                "Legal",
+                f"Cross-checking against {bundle.state or 'state'} land laws for {bundle.land_type or 'this'} property — stamp duty, registration, transfer rules.",
+                45,
+            )
+            survey_hint = ", ".join(all_survey_numbers[:3]) if all_survey_numbers else "the property"
+            await self._thought(
+                bundle_id,
+                "Fraud",
+                f"Searching public records and news for indicators on {survey_hint}{'...' if all_survey_numbers else '.'}",
+                48,
+            )
+
             # 4. Run legal and fraud checks in parallel on combined data
             # Use bundle_id as the progress tracking ID
             legal_findings, fraud_findings = await asyncio.gather(
@@ -344,7 +423,29 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
                 self.fraud_agent.run(combined, bundle_id),
             )
 
+            # Post-analysis summaries
+            legal_issues = sum(1 for f in legal_findings if not f.is_compliant)
+            fraud_issues = sum(1 for f in fraud_findings if f.is_suspicious)
+            await self._thought(
+                bundle_id,
+                "Legal",
+                f"Done. {legal_issues} potential compliance issue{'s' if legal_issues != 1 else ''} flagged for review." if legal_issues else "Done. No major compliance issues detected.",
+                68,
+            )
+            await self._thought(
+                bundle_id,
+                "Fraud",
+                f"Done. {fraud_issues} suspicious pattern{'s' if fraud_issues != 1 else ''} worth verifying." if fraud_issues else "Done. No suspicious patterns detected in available sources.",
+                72,
+            )
+
             await self._update_bundle_progress(bundle_id, "Generating report...", 75, "report_generation_started")
+            await self._thought(
+                bundle_id,
+                "Reporter",
+                "Composing your verdict, verification checklist, and missing-documents list.",
+                78,
+            )
 
             # 5. Identify missing documents based on state/land_type
             missing_docs = self._identify_missing_documents(doc_types_found, bundle.state, bundle.land_type)
