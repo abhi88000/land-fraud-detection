@@ -55,7 +55,7 @@ export default function MainLayout({
           <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, marginRight: 24 }}>
             <ShieldIcon sx={{ color: '#4285F4', fontSize: 28 }} />
             <Typography variant="h6" fontWeight={600} sx={{ color: '#202124', letterSpacing: '-0.5px' }}>
-              LandGuard
+              Landshield
             </Typography>
           </Link>
 

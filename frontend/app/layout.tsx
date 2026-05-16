@@ -9,7 +9,7 @@ import { AuthProvider } from '@/lib/firebase/auth';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "LandGuard",
+  title: "Landshield",
   description: "AI-powered land document verification platform",
 };
 

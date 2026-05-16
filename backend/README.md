@@ -1,6 +1,6 @@
-# LandGuard Backend
+# Landshield Backend
 
-This is the backend component of the LandGuard platform, an AI-powered system designed to detect fraud in Indian land transactions. It is built to be robust, scalable, and secure, leveraging Google Cloud services and a multi-agent architecture.
+This is the backend component of the Landshield platform, an AI-powered system designed to detect fraud in Indian land transactions. It is built to be robust, scalable, and secure, leveraging Google Cloud services and a multi-agent architecture.
 
 ---
 
@@ -67,7 +67,7 @@ Before you begin, ensure you have the following installed:
 
 ## Google Cloud Setup
 
-Follow these steps to set up your Google Cloud Project for the LandGuard backend.
+Follow these steps to set up your Google Cloud Project for the Landshield backend.
 
 ### Project and APIs
 
@@ -152,7 +152,7 @@ Now, edit the `.env` file with your specific Google Cloud and Firebase configura
 # Google Cloud Project ID
 GCP_PROJECT_ID="your-gcp-project-id"
 
-# Google Cloud Storage bucket name for documents (e.g., "my-landguard-bucket")
+# Google Cloud Storage bucket name for documents (e.g., "my-landshield-bucket")
 GCS_BUCKET_NAME="your-gcs-bucket-name"
 
 # Firebase Project ID for authentication (usually same as GCP_PROJECT_ID)

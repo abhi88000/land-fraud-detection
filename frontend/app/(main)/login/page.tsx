@@ -72,7 +72,7 @@ export default function LoginPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'white', fontSize: '16px', fontWeight: 700,
             }}>L</Box>
-            <Typography variant="h5" fontWeight={700} sx={{ color: '#202124' }}>LandGuard</Typography>
+            <Typography variant="h5" fontWeight={700} sx={{ color: '#202124' }}>Landshield</Typography>
           </Box>
           <Typography variant="body2" sx={{ color: '#5f6368' }}>Sign in to continue</Typography>
         </Box>

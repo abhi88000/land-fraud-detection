@@ -42,7 +42,7 @@ const LoadingScreen = () => {
         </Box>
       </Box>
       <Typography variant="h6" sx={{ color: '#202124', fontWeight: 600 }}>
-        LandGuard
+        Landshield
       </Typography>
       <Typography variant="body2" sx={{ color: '#5f6368', mt: 0.5, animation: 'pulse 2s ease-in-out infinite' }}>
         Loading...

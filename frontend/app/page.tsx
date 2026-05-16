@@ -196,7 +196,7 @@ export default function HomePage() {
               L
             </Box>
             <Typography sx={{ fontSize: '0.9rem', color: '#5f6368', fontWeight: 500 }}>
-              LandGuard
+              Landshield
             </Typography>
           </Box>
 

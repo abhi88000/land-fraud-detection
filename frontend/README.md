@@ -1,6 +1,6 @@
-# LandGuard Frontend
+# Landshield Frontend
 
-This is the frontend for the LandGuard platform, built with Next.js 14, Material UI, and integrates with the LandGuard Backend API.
+This is the frontend for the Landshield platform, built with Next.js 14, Material UI, and integrates with the Landshield Backend API.
 
 ## Table of Contents
 
