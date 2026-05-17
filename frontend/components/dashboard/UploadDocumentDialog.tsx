@@ -120,8 +120,8 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
       open={open}
       onClose={onClose}
       fullWidth
-      maxWidth="sm"
-      PaperProps={{ sx: { borderRadius: '20px', overflow: 'hidden' } }}
+      maxWidth="md"
+      PaperProps={{ sx: { borderRadius: '20px', overflow: 'hidden', maxWidth: 640 } }}
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, pt: 3, pb: 0.5 }}>
@@ -265,7 +265,7 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
                     {f.name}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#80868b', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                    {(f.size / 1024 / 1024).toFixed(1)} MB
+                    {f.size < 1024 ? `${f.size} B` : f.size < 1024 * 1024 ? `${(f.size / 1024).toFixed(0)} KB` : `${(f.size / 1024 / 1024).toFixed(1)} MB`}
                   </Typography>
                   <IconButton size="small" onClick={() => removeFile(i)} sx={{ p: 0.25, flexShrink: 0 }}>
                     <DeleteOutlineIcon sx={{ fontSize: 16, color: '#d93025' }} />

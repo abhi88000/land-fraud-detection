@@ -292,3 +292,115 @@ async def delete_bundle(bundle_id: str, current_user: User = Depends(get_current
 
     await firestore.delete_bundle_entry(bundle_id)
     return None
+
+
+@router.post("/{bundle_id}/documents", status_code=status.HTTP_201_CREATED)
+async def add_documents_to_bundle(
+    bundle_id: str,
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Add one or more files to an existing bundle."""
+    bundle_data = await firestore.get_bundle_entry(bundle_id)
+    if not bundle_data:
+        raise HTTPException(status_code=404, detail="Bundle not found.")
+    if bundle_data.get("user_id") != current_user.uid:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+
+    if not files:
+        raise HTTPException(status_code=400, detail="At least one file is required.")
+
+    existing_ids = list(bundle_data.get("document_ids", []) or [])
+    if len(existing_ids) + len(files) > 10:
+        raise HTTPException(status_code=400, detail="Bundle can hold a maximum of 10 documents.")
+
+    allowed_content_types = ["application/pdf", "image/jpeg", "image/png", "image/tiff"]
+    MAX_FILE_SIZE = 20 * 1024 * 1024
+
+    state = bundle_data.get("state", "")
+    district = bundle_data.get("district", "")
+    land_type = bundle_data.get("land_type", "")
+    user_id = current_user.uid
+
+    new_ids: List[str] = []
+    for file in files:
+        if not file.content_type or file.content_type not in allowed_content_types:
+            raise HTTPException(status_code=400, detail=f"Invalid file type: {file.filename}. Allowed: PDF, JPEG, PNG, TIFF.")
+
+        file_content = await file.read()
+        if len(file_content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail=f"File {file.filename} exceeds 20MB limit.")
+
+        document_id = str(uuid.uuid4())
+        safe_filename = re.sub(r'[^\w.\-]', '_', file.filename or 'document')
+        file_extension = safe_filename.rsplit('.', 1)[-1] if '.' in safe_filename else 'bin'
+        gcs_file_path = f"users/{user_id}/documents/{document_id}.{file_extension}"
+
+        try:
+            gcs_uri = await gcs.upload_file(gcs_file_path, file_content, file.content_type)
+        except Exception as e:
+            logger.error(f"Error uploading file {file.filename} to GCS: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to upload {file.filename}")
+
+        document = Document(
+            id=document_id,
+            user_id=user_id,
+            file_name=file.filename,
+            gcs_path=gcs_uri,
+            content_type=file.content_type,
+            status=DocumentStatus.PENDING,
+            state=state,
+            district=district,
+            land_type=land_type,
+            bundle_id=bundle_id,
+        )
+        await firestore.create_document_entry(document_id, document.dict())
+        new_ids.append(document_id)
+
+    updated_ids = existing_ids + new_ids
+    # Adding new files means the bundle needs re-analysis
+    await firestore.update_bundle_entry(bundle_id, {
+        "document_ids": updated_ids,
+        "status": BundleStatus.CREATED.value,
+    })
+    logger.info(f"Added {len(new_ids)} documents to bundle {bundle_id}.")
+    return {"added": new_ids, "document_ids": updated_ids}
+
+
+@router.delete("/{bundle_id}/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_document_from_bundle(
+    bundle_id: str,
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Remove a single document from a bundle (and delete it)."""
+    bundle_data = await firestore.get_bundle_entry(bundle_id)
+    if not bundle_data:
+        raise HTTPException(status_code=404, detail="Bundle not found.")
+    if bundle_data.get("user_id") != current_user.uid:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+
+    existing_ids = list(bundle_data.get("document_ids", []) or [])
+    if document_id not in existing_ids:
+        raise HTTPException(status_code=404, detail="Document not in this bundle.")
+
+    if len(existing_ids) <= 1:
+        raise HTTPException(status_code=400, detail="A bundle must contain at least one document. Delete the bundle instead.")
+
+    # Delete from GCS + Firestore
+    doc_data = await firestore.get_document_entry(document_id)
+    if doc_data:
+        gcs_path = doc_data.get("gcs_path", "")
+        if gcs_path:
+            try:
+                await gcs.delete_file(gcs_path)
+            except Exception:
+                pass
+    await firestore.delete_document_entry(document_id)
+
+    updated_ids = [d for d in existing_ids if d != document_id]
+    await firestore.update_bundle_entry(bundle_id, {
+        "document_ids": updated_ids,
+        "status": BundleStatus.CREATED.value,
+    })
+    return None

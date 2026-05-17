@@ -42,77 +42,67 @@ const LandshieldLogo: React.FC<LandshieldLogoProps> = ({
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          <linearGradient id="ls-tile" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#5B8DEF" />
-            <stop offset="55%" stopColor="#4285F4" />
-            <stop offset="100%" stopColor="#6A4FE0" />
+          <linearGradient id="ls-shield" x1="6" y1="3" x2="34" y2="37" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#1F2A44" />
+            <stop offset="100%" stopColor="#2E3F66" />
           </linearGradient>
-          <linearGradient id="ls-tile-hi" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.28" />
-            <stop offset="55%" stopColor="#ffffff" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="ls-paper" x1="0" y1="8" x2="0" y2="34" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="100%" stopColor="#eef3fb" />
+          <linearGradient id="ls-stroke" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#4285F4" />
+            <stop offset="100%" stopColor="#7B61FF" />
           </linearGradient>
         </defs>
 
-        {/* Rounded square tile */}
-        <rect x="0" y="0" width="40" height="40" rx="10" fill="url(#ls-tile)" />
-        <rect x="0" y="0" width="40" height="40" rx="10" fill="url(#ls-tile-hi)" />
-
-        {/* Document with corner fold */}
+        {/* Shield silhouette — clean charcoal-indigo, no garish blue */}
         <path
-          d="M11.5 9.5 H23 L28.5 15 V29 a2 2 0 0 1 -2 2 H11.5 a2 2 0 0 1 -2 -2 V11.5 a2 2 0 0 1 2 -2 z"
-          fill="url(#ls-paper)"
+          d="M20 3.5 L33 7.5 V20 C33 28.2 27.4 33.8 20 36.5 C12.6 33.8 7 28.2 7 20 V7.5 Z"
+          fill="url(#ls-shield)"
         />
-        {/* Folded corner */}
+        {/* Subtle gradient outline */}
         <path
-          d="M23 9.5 V13 a2 2 0 0 0 2 2 H28.5 Z"
-          fill="#cdd9ef"
-        />
-        <path
-          d="M23 9.5 V13 a2 2 0 0 0 2 2 H28.5"
-          stroke="#9fb4d8"
-          strokeWidth="0.6"
+          d="M20 3.5 L33 7.5 V20 C33 28.2 27.4 33.8 20 36.5 C12.6 33.8 7 28.2 7 20 V7.5 Z"
           fill="none"
+          stroke="url(#ls-stroke)"
+          strokeWidth="1.1"
           strokeLinejoin="round"
         />
 
-        {/* Text lines on document */}
-        <rect x="12.8" y="19" width="9" height="1.4" rx="0.7" fill="#c7d2e8" />
-        <rect x="12.8" y="22.3" width="12" height="1.4" rx="0.7" fill="#c7d2e8" />
-
-        {/* Check seal */}
-        <circle cx="24" cy="26" r="5.2" fill="#1e8e3e" />
-        <circle cx="24" cy="26" r="5.2" fill="none" stroke="white" strokeWidth="0.7" opacity="0.55" />
+        {/* Monogram "L" — clean serif-less, in white */}
         <path
-          d="M21.6 26.2 L23.4 28 L26.6 24.4"
-          stroke="white"
-          strokeWidth="1.6"
+          d="M16.2 13.5 V25.4 H25.2"
+          stroke="#ffffff"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+
+        {/* Small green verification dot — corner accent */}
+        <circle cx="29" cy="11" r="3.2" fill="#1e8e3e" stroke="#ffffff" strokeWidth="1" />
+        <path
+          d="M27.6 11 L28.6 12 L30.4 10.1"
+          stroke="#ffffff"
+          strokeWidth="1.1"
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
         />
 
         {animated && (
-          <rect
-            x="0"
-            y="0"
-            width="40"
-            height="40"
-            rx="10"
+          <path
+            d="M20 3.5 L33 7.5 V20 C33 28.2 27.4 33.8 20 36.5 C12.6 33.8 7 28.2 7 20 V7.5 Z"
             fill="none"
-            stroke="rgba(255,255,255,0.35)"
-            strokeWidth="1"
+            stroke="url(#ls-stroke)"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+            opacity="0.6"
           >
             <animate
               attributeName="opacity"
-              values="0;0.6;0"
+              values="0;0.7;0"
               dur="2.2s"
               repeatCount="indefinite"
             />
-          </rect>
+          </path>
         )}
       </svg>
     </Box>

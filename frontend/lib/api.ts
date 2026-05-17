@@ -214,3 +214,36 @@ export async function updateBundle(bundleId: string, state: string, district: st
   if (!response.ok) throw new Error('Failed to update bundle');
   return await response.json();
 }
+
+export async function addFilesToBundle(bundleId: string, files: File[], token?: string): Promise<{ added: string[]; document_ids: string[] }> {
+  const formData = new FormData();
+  for (const file of files) formData.append('files', file);
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_V1}/bundles/${bundleId}/documents`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to add files');
+  }
+  return await response.json();
+}
+
+export async function removeFileFromBundle(bundleId: string, documentId: string, token?: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_V1}/bundles/${bundleId}/documents/${documentId}`, {
+    method: 'DELETE',
+    headers,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to remove file');
+  }
+}

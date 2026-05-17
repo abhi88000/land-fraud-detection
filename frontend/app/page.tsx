@@ -31,10 +31,12 @@ function DocumentField() {
     resize();
     window.addEventListener('resize', resize);
 
-    // Brand-friendly muted palette
-    const palette = ['#4285F4', '#1a73e8', '#34A853', '#FBBC05', '#7B61FF', '#1e8e3e'];
+    // Vibrant brand palette
+    const palette = ['#4285F4', '#1a73e8', '#34A853', '#FBBC05', '#7B61FF', '#1e8e3e', '#EA4335', '#FF7043', '#26A69A', '#5C6BC0'];
 
-    type IconKind = 'doc' | 'magnifier' | 'pen' | 'stamp' | 'pin' | 'key' | 'check';
+    type IconKind =
+      | 'doc' | 'magnifier' | 'pen' | 'stamp' | 'pin' | 'key' | 'check'
+      | 'house' | 'scale' | 'tree' | 'shield' | 'ribbon' | 'gavel' | 'coin';
 
     interface Floater {
       x: number; y: number;
@@ -50,22 +52,25 @@ function DocumentField() {
     const W = () => window.innerWidth;
     const H = () => window.innerHeight;
 
-    const kinds: IconKind[] = ['doc', 'magnifier', 'pen', 'stamp', 'pin', 'key', 'check'];
-    const COUNT = Math.min(28, Math.max(14, Math.floor((W() * H()) / 60000)));
+    const kinds: IconKind[] = [
+      'doc', 'magnifier', 'pen', 'stamp', 'pin', 'key', 'check',
+      'house', 'scale', 'tree', 'shield', 'ribbon', 'gavel', 'coin',
+    ];
+    const COUNT = Math.min(90, Math.max(45, Math.floor((W() * H()) / 22000)));
     const floaters: Floater[] = [];
 
     for (let i = 0; i < COUNT; i++) {
       floaters.push({
         x: Math.random() * W(),
         y: Math.random() * H(),
-        vx: (Math.random() - 0.5) * 0.25,
-        vy: (Math.random() - 0.5) * 0.25,
-        size: 14 + Math.random() * 16,
-        rotation: (Math.random() - 0.5) * 0.6,
-        rotationSpeed: (Math.random() - 0.5) * 0.0015,
+        vx: (Math.random() - 0.5) * 0.22,
+        vy: (Math.random() - 0.5) * 0.22,
+        size: 18 + Math.random() * 22,
+        rotation: (Math.random() - 0.5) * 0.8,
+        rotationSpeed: (Math.random() - 0.5) * 0.0014,
         kind: kinds[Math.floor(Math.random() * kinds.length)],
         color: palette[Math.floor(Math.random() * palette.length)],
-        opacity: 0.18 + Math.random() * 0.18,
+        opacity: 0.28 + Math.random() * 0.22,
       });
     }
 
@@ -227,6 +232,187 @@ function DocumentField() {
       ctx.stroke();
     };
 
+    const drawHouse = (s: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 1.8;
+      // Roof
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.5, -s * 0.05);
+      ctx.lineTo(0, -s * 0.45);
+      ctx.lineTo(s * 0.5, -s * 0.05);
+      ctx.stroke();
+      // Walls
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.4, -s * 0.05);
+      ctx.lineTo(-s * 0.4, s * 0.42);
+      ctx.lineTo(s * 0.4, s * 0.42);
+      ctx.lineTo(s * 0.4, -s * 0.05);
+      ctx.stroke();
+      // Door
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.1, s * 0.42);
+      ctx.lineTo(-s * 0.1, s * 0.15);
+      ctx.lineTo(s * 0.1, s * 0.15);
+      ctx.lineTo(s * 0.1, s * 0.42);
+      ctx.stroke();
+    };
+
+    const drawScale = (s: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 1.7;
+      // Vertical pole
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.45);
+      ctx.lineTo(0, s * 0.45);
+      ctx.stroke();
+      // Beam
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.42, -s * 0.3);
+      ctx.lineTo(s * 0.42, -s * 0.3);
+      ctx.stroke();
+      // Pans (arcs)
+      ctx.beginPath();
+      ctx.arc(-s * 0.42, -s * 0.05, s * 0.18, 0, Math.PI);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(s * 0.42, -s * 0.05, s * 0.18, 0, Math.PI);
+      ctx.stroke();
+      // Base
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.18, s * 0.45);
+      ctx.lineTo(s * 0.18, s * 0.45);
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+    };
+
+    const drawTree = (s: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 1.7;
+      // Canopy (three triangles)
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.35, -s * 0.08);
+      ctx.lineTo(0, -s * 0.48);
+      ctx.lineTo(s * 0.35, -s * 0.08);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.42, s * 0.18);
+      ctx.lineTo(0, -s * 0.25);
+      ctx.lineTo(s * 0.42, s * 0.18);
+      ctx.closePath();
+      ctx.stroke();
+      // Trunk
+      ctx.beginPath();
+      ctx.moveTo(0, s * 0.18);
+      ctx.lineTo(0, s * 0.45);
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
+    };
+
+    const drawShield = (s: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.48);
+      ctx.lineTo(s * 0.38, -s * 0.32);
+      ctx.lineTo(s * 0.34, s * 0.18);
+      ctx.quadraticCurveTo(s * 0.2, s * 0.45, 0, s * 0.5);
+      ctx.quadraticCurveTo(-s * 0.2, s * 0.45, -s * 0.34, s * 0.18);
+      ctx.lineTo(-s * 0.38, -s * 0.32);
+      ctx.closePath();
+      ctx.stroke();
+      // Inner check
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.14, 0);
+      ctx.lineTo(-s * 0.02, s * 0.14);
+      ctx.lineTo(s * 0.18, -s * 0.14);
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+    };
+
+    const drawRibbon = (s: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 1.7;
+      // Medal circle
+      ctx.beginPath();
+      ctx.arc(0, -s * 0.05, s * 0.28, 0, Math.PI * 2);
+      ctx.stroke();
+      // Ribbons
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.18, s * 0.18);
+      ctx.lineTo(-s * 0.22, s * 0.5);
+      ctx.lineTo(-s * 0.05, s * 0.4);
+      ctx.moveTo(s * 0.18, s * 0.18);
+      ctx.lineTo(s * 0.22, s * 0.5);
+      ctx.lineTo(s * 0.05, s * 0.4);
+      ctx.stroke();
+      // Star center
+      ctx.beginPath();
+      ctx.arc(0, -s * 0.05, s * 0.08, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    };
+
+    const drawGavel = (s: number, color: string) => {
+      ctx.save();
+      ctx.rotate(-Math.PI / 6);
+      ctx.strokeStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 1.8;
+      // Head
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.45, -s * 0.18);
+      ctx.lineTo(-s * 0.05, -s * 0.18);
+      ctx.lineTo(-s * 0.05, s * 0.05);
+      ctx.lineTo(-s * 0.45, s * 0.05);
+      ctx.closePath();
+      ctx.stroke();
+      // Handle
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.05, -s * 0.06);
+      ctx.lineTo(s * 0.42, -s * 0.06);
+      ctx.stroke();
+      // Base
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.45, s * 0.32);
+      ctx.lineTo(s * 0.1, s * 0.32);
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    const drawCoin = (s: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.28, 0, Math.PI * 2);
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      // Rupee-ish strokes
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.1, -s * 0.16);
+      ctx.lineTo(s * 0.12, -s * 0.16);
+      ctx.moveTo(-s * 0.1, -s * 0.04);
+      ctx.lineTo(s * 0.12, -s * 0.04);
+      ctx.moveTo(-s * 0.08, -s * 0.04);
+      ctx.lineTo(s * 0.1, s * 0.2);
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    };
+
     const drawIcon = (kind: IconKind, s: number, color: string) => {
       switch (kind) {
         case 'doc':       return drawDoc(s, color);
@@ -236,6 +422,13 @@ function DocumentField() {
         case 'pin':       return drawPin(s, color);
         case 'key':       return drawKey(s, color);
         case 'check':     return drawCheck(s, color);
+        case 'house':     return drawHouse(s, color);
+        case 'scale':     return drawScale(s, color);
+        case 'tree':      return drawTree(s, color);
+        case 'shield':    return drawShield(s, color);
+        case 'ribbon':    return drawRibbon(s, color);
+        case 'gavel':     return drawGavel(s, color);
+        case 'coin':      return drawCoin(s, color);
       }
     };
 
@@ -386,8 +579,8 @@ export default function HomePage() {
               transition: 'all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s',
             }}
           >
-            Upload your land papers and our agents read every clause, cross-check
-            the chain of title, and flag what a careful lawyer would — in seconds.
+            Upload your land documents and let our AI agents review every clause,
+            verify the chain of title, and surface the risks a careful lawyer would catch.
           </Typography>
 
           {/* CTA Buttons */}

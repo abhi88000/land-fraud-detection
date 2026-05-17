@@ -9,7 +9,6 @@ import LoadingScreen from '@/components/ui/LoadingScreen';
 import LandshieldLogo from '@/components/ui/LandshieldLogo';
 import HomeIcon from '@mui/icons-material/Home';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import InsightsIcon from '@mui/icons-material/Insights';
 
 export default function MainLayout({
   children,
@@ -95,23 +94,6 @@ export default function MainLayout({
                 }}
               >
                 Dashboard
-              </Button>
-              <Button
-                component={Link}
-                href="/analytics"
-                prefetch={true}
-                startIcon={<InsightsIcon />}
-                sx={{
-                  color: pathname?.startsWith('/analytics') ? '#1a73e8' : '#5f6368',
-                  fontWeight: pathname?.startsWith('/analytics') ? 600 : 400,
-                  fontSize: '0.875rem',
-                  borderRadius: '20px',
-                  px: 2,
-                  textDecoration: 'none',
-                  '&:hover': { bgcolor: '#f1f3f4' },
-                }}
-              >
-                Analytics
               </Button>
             </Box>
           )}
