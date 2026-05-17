@@ -21,7 +21,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { AnalysisReport, LegalFinding, FraudFinding, Party } from '@/lib/types';
 
 type Severity = 'critical' | 'high' | 'medium' | 'low';
@@ -157,7 +157,15 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* ─── Property facts card ─── */}
       {ed && (
-        <Paper elevation={0} sx={{ p: 2.5, borderRadius: '16px', border: '1px solid #e8eaed', bgcolor: '#fff' }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2.5,
+            borderRadius: '16px',
+            bgcolor: '#fff',
+            boxShadow: '0 1px 2px rgba(60,64,67,0.06), 0 0 0 1px rgba(60,64,67,0.06)',
+          }}
+        >
           <Typography sx={{
             fontSize: '0.68rem', fontWeight: 600, color: '#5f6368',
             textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5,
@@ -189,12 +197,20 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
       )}
 
       {/* ─── Tabs ─── */}
-      <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e8eaed', overflow: 'hidden' }}>
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: '16px',
+          overflow: 'hidden',
+          bgcolor: '#fff',
+          boxShadow: '0 1px 2px rgba(60,64,67,0.06), 0 0 0 1px rgba(60,64,67,0.06)',
+        }}
+      >
         <Tabs
           value={tab}
           onChange={(_, v) => setTab(v)}
           sx={{
-            px: 1.5, minHeight: 44, borderBottom: '1px solid #e8eaed',
+            px: 1.5, minHeight: 44, borderBottom: '1px solid #f1f3f4',
             '& .MuiTab-root': {
               textTransform: 'none', fontWeight: 500, fontSize: '0.82rem',
               minHeight: 44, color: '#5f6368', px: 1.5,
@@ -296,13 +312,90 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
         </Box>
       </Paper>
 
-      {/* ─── Footer disclaimer ─── */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, px: 0.5 }}>
-        <ErrorOutlineIcon sx={{ fontSize: 14, color: '#80868b', mt: 0.2 }} />
-        <Typography sx={{ fontSize: '0.72rem', color: '#80868b', lineHeight: 1.55 }}>
-          AI-assisted review to highlight areas worth verifying — not a legal opinion. Always consult a qualified property lawyer or your local sub-registrar before any decision.
-          {report.generated_at && <> · Generated {new Date(report.generated_at).toLocaleString()}</>}
-        </Typography>
+      {/* ─── Disclaimer banner ─── */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 1.75 },
+          px: 2,
+          py: 1.5,
+          borderRadius: '14px',
+          background:
+            'linear-gradient(135deg, rgba(232,240,254,0.7) 0%, rgba(243,232,255,0.55) 100%)',
+          boxShadow: '0 0 0 1px rgba(26,115,232,0.10)',
+        }}
+      >
+        <Box
+          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: '10px',
+            bgcolor: 'rgba(26,115,232,0.12)',
+            color: '#1a73e8',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <InfoOutlinedIcon sx={{ fontSize: 18 }} />
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography
+            sx={{
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              color: '#202124',
+              lineHeight: 1.4,
+              mb: 0.2,
+            }}
+          >
+            AI-assisted review · Not a legal opinion
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: '0.76rem',
+              color: '#5f6368',
+              lineHeight: 1.5,
+            }}
+          >
+            This summary highlights areas worth verifying. Always consult a qualified property
+            lawyer or your local sub-registrar before making any decision.
+          </Typography>
+        </Box>
+        {(() => {
+          const raw = report.generated_at;
+          if (!raw) return null;
+          const d = new Date(raw as any);
+          if (isNaN(d.getTime())) return null;
+          const formatted = d.toLocaleString(undefined, {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          return (
+            <Typography
+              sx={{
+                fontSize: '0.7rem',
+                color: '#5f6368',
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                pl: { xs: 0, sm: 1 },
+                pt: { xs: 0.5, sm: 0 },
+                borderLeft: { xs: 'none', sm: '1px solid rgba(95,99,104,0.18)' },
+                ml: { xs: 0, sm: 0.5 },
+              }}
+              title={d.toString()}
+            >
+              Generated<br />
+              <Box component="span" sx={{ color: '#202124', fontWeight: 600 }}>{formatted}</Box>
+            </Typography>
+          );
+        })()}
       </Box>
     </Box>
   );
@@ -362,11 +455,11 @@ function FindingCard({ f }: { f: UnifiedFinding }) {
     <Box
       sx={{
         borderRadius: '12px',
-        border: '1px solid #e8eaed',
         bgcolor: '#fff',
         overflow: 'hidden',
-        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-        '&:hover': { borderColor: '#dadce0' },
+        boxShadow: '0 0 0 1px rgba(60,64,67,0.07)',
+        transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+        '&:hover': { boxShadow: '0 1px 3px rgba(60,64,67,0.10), 0 0 0 1px rgba(60,64,67,0.10)' },
       }}
     >
       <Box
@@ -451,8 +544,8 @@ function FindingCard({ f }: { f: UnifiedFinding }) {
 
 function DocsBlock({ title, tone, tint, children }: { title: string; tone: string; tint: string; children: React.ReactNode }) {
   return (
-    <Box sx={{ borderRadius: '12px', border: '1px solid #e8eaed', overflow: 'hidden' }}>
-      <Box sx={{ px: 1.5, py: 1, bgcolor: tint, borderBottom: `1px solid ${tint}` }}>
+    <Box sx={{ borderRadius: '12px', overflow: 'hidden', boxShadow: '0 0 0 1px rgba(60,64,67,0.07)' }}>
+      <Box sx={{ px: 1.5, py: 1, bgcolor: tint }}>
         <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: tone, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {title}
         </Typography>
