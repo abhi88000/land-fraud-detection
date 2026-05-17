@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth';
 import LandshieldLogo from '@/components/ui/LandshieldLogo';
 
-// Particle system - scattered confetti like Google Antigravity
-function ParticleField() {
+// Floating thematic field — drifting land-document icons rendered onto canvas
+function DocumentField() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -25,82 +25,238 @@ function ParticleField() {
       canvas.height = window.innerHeight * dpr;
       canvas.style.width = window.innerWidth + 'px';
       canvas.style.height = window.innerHeight + 'px';
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
     };
     resize();
     window.addEventListener('resize', resize);
 
-    const colors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#7B61FF', '#FF6D93', '#00BCD4'];
+    // Brand-friendly muted palette
+    const palette = ['#4285F4', '#1a73e8', '#34A853', '#FBBC05', '#7B61FF', '#1e8e3e'];
 
-    interface Particle {
-      x: number; y: number; size: number; color: string;
-      vx: number; vy: number; rotation: number; rotationSpeed: number;
-      shape: 'dot' | 'dash' | 'circle';
+    type IconKind = 'doc' | 'magnifier' | 'pen' | 'stamp' | 'pin' | 'key' | 'check';
+
+    interface Floater {
+      x: number; y: number;
+      vx: number; vy: number;
+      size: number;
+      rotation: number;
+      rotationSpeed: number;
+      kind: IconKind;
+      color: string;
       opacity: number;
     }
 
-    const particles: Particle[] = [];
-    const count = 80;
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
+    const W = () => window.innerWidth;
+    const H = () => window.innerHeight;
 
-    for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
-      const dist = 120 + Math.random() * Math.min(window.innerWidth, window.innerHeight) * 0.4;
-      particles.push({
-        x: cx + Math.cos(angle) * dist,
-        y: cy + Math.sin(angle) * dist,
-        size: 2 + Math.random() * 4,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        vx: Math.cos(angle) * (0.1 + Math.random() * 0.2),
-        vy: Math.sin(angle) * (0.1 + Math.random() * 0.2),
-        rotation: Math.random() * Math.PI * 2,
-        rotationSpeed: (Math.random() - 0.5) * 0.02,
-        shape: (['dot', 'dash', 'circle'] as const)[Math.floor(Math.random() * 3)],
-        opacity: 0.4 + Math.random() * 0.5,
+    const kinds: IconKind[] = ['doc', 'magnifier', 'pen', 'stamp', 'pin', 'key', 'check'];
+    const COUNT = Math.min(28, Math.max(14, Math.floor((W() * H()) / 60000)));
+    const floaters: Floater[] = [];
+
+    for (let i = 0; i < COUNT; i++) {
+      floaters.push({
+        x: Math.random() * W(),
+        y: Math.random() * H(),
+        vx: (Math.random() - 0.5) * 0.25,
+        vy: (Math.random() - 0.5) * 0.25,
+        size: 14 + Math.random() * 16,
+        rotation: (Math.random() - 0.5) * 0.6,
+        rotationSpeed: (Math.random() - 0.5) * 0.0015,
+        kind: kinds[Math.floor(Math.random() * kinds.length)],
+        color: palette[Math.floor(Math.random() * palette.length)],
+        opacity: 0.18 + Math.random() * 0.18,
       });
     }
 
+    // Drawing helpers — each shape is centered on (0,0) and scaled by `s`
+    const drawDoc = (s: number, color: string) => {
+      const w = s * 0.78, h = s * 1.0, fold = s * 0.28;
+      ctx.beginPath();
+      ctx.moveTo(-w / 2, -h / 2);
+      ctx.lineTo(w / 2 - fold, -h / 2);
+      ctx.lineTo(w / 2, -h / 2 + fold);
+      ctx.lineTo(w / 2, h / 2);
+      ctx.lineTo(-w / 2, h / 2);
+      ctx.closePath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.6;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      // Lines
+      ctx.beginPath();
+      ctx.moveTo(-w / 2 + s * 0.16, -s * 0.08);
+      ctx.lineTo(w / 2 - s * 0.18, -s * 0.08);
+      ctx.moveTo(-w / 2 + s * 0.16, s * 0.1);
+      ctx.lineTo(w / 2 - s * 0.32, s * 0.1);
+      ctx.moveTo(-w / 2 + s * 0.16, s * 0.28);
+      ctx.lineTo(w / 2 - s * 0.22, s * 0.28);
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    };
+
+    const drawMagnifier = (s: number, color: string) => {
+      const r = s * 0.4;
+      ctx.beginPath();
+      ctx.arc(-s * 0.1, -s * 0.1, r, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      // Handle
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.1 + r * 0.7, -s * 0.1 + r * 0.7);
+      ctx.lineTo(s * 0.5, s * 0.5);
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+    };
+
+    const drawPen = (s: number, color: string) => {
+      ctx.save();
+      ctx.rotate(-Math.PI / 4);
+      ctx.strokeStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 1.8;
+      // Body
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.5, 0);
+      ctx.lineTo(s * 0.35, 0);
+      ctx.stroke();
+      // Tip
+      ctx.beginPath();
+      ctx.moveTo(s * 0.35, -s * 0.12);
+      ctx.lineTo(s * 0.55, 0);
+      ctx.lineTo(s * 0.35, s * 0.12);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    };
+
+    const drawStamp = (s: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 1.6;
+      // Handle
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.18, -s * 0.4);
+      ctx.lineTo(s * 0.18, -s * 0.4);
+      ctx.lineTo(s * 0.32, -s * 0.05);
+      ctx.lineTo(-s * 0.32, -s * 0.05);
+      ctx.closePath();
+      ctx.stroke();
+      // Base
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.42, s * 0.18);
+      ctx.lineTo(s * 0.42, s * 0.18);
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+      // Stem
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.05);
+      ctx.lineTo(0, s * 0.12);
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    };
+
+    const drawPin = (s: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      // Teardrop
+      ctx.beginPath();
+      ctx.arc(0, -s * 0.05, s * 0.32, Math.PI * 0.85, Math.PI * 0.15, true);
+      ctx.lineTo(0, s * 0.5);
+      ctx.closePath();
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      // Inner dot
+      ctx.beginPath();
+      ctx.arc(0, -s * 0.05, s * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    const drawKey = (s: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 1.8;
+      // Bow
+      ctx.beginPath();
+      ctx.arc(-s * 0.3, 0, s * 0.18, 0, Math.PI * 2);
+      ctx.stroke();
+      // Shaft
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.12, 0);
+      ctx.lineTo(s * 0.45, 0);
+      ctx.stroke();
+      // Teeth
+      ctx.beginPath();
+      ctx.moveTo(s * 0.35, 0);
+      ctx.lineTo(s * 0.35, s * 0.14);
+      ctx.moveTo(s * 0.45, 0);
+      ctx.lineTo(s * 0.45, s * 0.18);
+      ctx.stroke();
+    };
+
+    const drawCheck = (s: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 2.4;
+      // Rounded square
+      const r = s * 0.18, w = s * 0.9;
+      ctx.beginPath();
+      ctx.moveTo(-w / 2 + r, -w / 2);
+      ctx.lineTo(w / 2 - r, -w / 2);
+      ctx.quadraticCurveTo(w / 2, -w / 2, w / 2, -w / 2 + r);
+      ctx.lineTo(w / 2, w / 2 - r);
+      ctx.quadraticCurveTo(w / 2, w / 2, w / 2 - r, w / 2);
+      ctx.lineTo(-w / 2 + r, w / 2);
+      ctx.quadraticCurveTo(-w / 2, w / 2, -w / 2, w / 2 - r);
+      ctx.lineTo(-w / 2, -w / 2 + r);
+      ctx.quadraticCurveTo(-w / 2, -w / 2, -w / 2 + r, -w / 2);
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      // Check
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.2, 0);
+      ctx.lineTo(-s * 0.04, s * 0.18);
+      ctx.lineTo(s * 0.24, -s * 0.18);
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+    };
+
+    const drawIcon = (kind: IconKind, s: number, color: string) => {
+      switch (kind) {
+        case 'doc':       return drawDoc(s, color);
+        case 'magnifier': return drawMagnifier(s, color);
+        case 'pen':       return drawPen(s, color);
+        case 'stamp':     return drawStamp(s, color);
+        case 'pin':       return drawPin(s, color);
+        case 'key':       return drawKey(s, color);
+        case 'check':     return drawCheck(s, color);
+      }
+    };
+
     const draw = () => {
-      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      ctx.clearRect(0, 0, W(), H());
 
-      for (const p of particles) {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.rotation += p.rotationSpeed;
+      for (const f of floaters) {
+        f.x += f.vx;
+        f.y += f.vy;
+        f.rotation += f.rotationSpeed;
 
-        // Wrap around
-        if (p.x < -20) p.x = window.innerWidth + 20;
-        if (p.x > window.innerWidth + 20) p.x = -20;
-        if (p.y < -20) p.y = window.innerHeight + 20;
-        if (p.y > window.innerHeight + 20) p.y = -20;
+        if (f.x < -40) f.x = W() + 40;
+        if (f.x > W() + 40) f.x = -40;
+        if (f.y < -40) f.y = H() + 40;
+        if (f.y > H() + 40) f.y = -40;
 
         ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rotation);
-        ctx.globalAlpha = p.opacity;
-
-        if (p.shape === 'dot') {
-          ctx.beginPath();
-          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
-          ctx.fillStyle = p.color;
-          ctx.fill();
-        } else if (p.shape === 'dash') {
-          ctx.beginPath();
-          ctx.moveTo(-p.size * 2, 0);
-          ctx.lineTo(p.size * 2, 0);
-          ctx.strokeStyle = p.color;
-          ctx.lineWidth = p.size * 0.7;
-          ctx.lineCap = 'round';
-          ctx.stroke();
-        } else {
-          ctx.beginPath();
-          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
-          ctx.strokeStyle = p.color;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
-
+        ctx.translate(f.x, f.y);
+        ctx.rotate(f.rotation);
+        ctx.globalAlpha = f.opacity;
+        drawIcon(f.kind, f.size, f.color);
         ctx.restore();
       }
 
@@ -174,7 +330,7 @@ export default function HomePage() {
           bgcolor: '#fafafa',
         }}
       >
-        <ParticleField />
+        <DocumentField />
 
         {/* Hero content */}
         <Box sx={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 750 }}>
@@ -209,9 +365,11 @@ export default function HomePage() {
               transition: 'all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
             }}
           >
-            AI-powered land fraud
+            Know what you're signing.
             <br />
-            detection for India
+            <Box component="span" sx={{ background: 'linear-gradient(90deg, #1a73e8, #7B61FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              Before you sign.
+            </Box>
           </Typography>
 
           {/* Subtitle */}
@@ -228,8 +386,8 @@ export default function HomePage() {
               transition: 'all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s',
             }}
           >
-            Upload land documents. Four AI agents analyze legal compliance,
-            detect forgery, and generate a clear risk report — in seconds.
+            Upload your land papers and our agents read every clause, cross-check
+            the chain of title, and flag what a careful lawyer would — in seconds.
           </Typography>
 
           {/* CTA Buttons */}
