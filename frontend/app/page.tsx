@@ -558,10 +558,10 @@ export default function HomePage() {
               transition: 'all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
             }}
           >
-            Know what you're signing.
+            An AI powered system that
             <br />
             <Box component="span" sx={{ background: 'linear-gradient(90deg, #1a73e8, #7B61FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              Before you sign.
+              makes your land buying decision smarter.
             </Box>
           </Typography>
 
