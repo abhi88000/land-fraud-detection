@@ -153,7 +153,7 @@ export default function BundleDetailPage() {
   }
 
   return (
-    <Box sx={{ py: 3, maxWidth: 800, mx: 'auto' }}>
+    <Box sx={{ py: 3, px: { xs: 2, md: 4 }, maxWidth: 1180, width: '100%', mx: 'auto' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
         <Button

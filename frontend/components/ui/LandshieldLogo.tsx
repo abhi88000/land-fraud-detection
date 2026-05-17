@@ -10,8 +10,8 @@ interface LandshieldLogoProps {
 }
 
 /**
- * Modern Landshield brand mark.
- * Gradient shield with a subtle inner highlight + animated sweep.
+ * Landshield brand mark — clean rounded-square tile with a bold checkmark.
+ * Modern fintech/productivity style (Linear / Stripe / Vercel inspired).
  */
 const LandshieldLogo: React.FC<LandshieldLogoProps> = ({
   size = 32,
@@ -29,80 +29,63 @@ const LandshieldLogo: React.FC<LandshieldLogoProps> = ({
         justifyContent: 'center',
         flexShrink: 0,
         ...(showGlow && {
-          filter: 'drop-shadow(0 4px 14px rgba(66, 133, 244, 0.35))',
+          filter: 'drop-shadow(0 6px 16px rgba(66,133,244,0.28))',
         }),
       }}
     >
       <svg
         width={size}
         height={size}
-        viewBox="0 0 48 48"
+        viewBox="0 0 40 40"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          <linearGradient id="ls-grad" x1="6" y1="4" x2="42" y2="46" gradientUnits="userSpaceOnUse">
+          <linearGradient id="ls-tile" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#5B8DEF" />
             <stop offset="55%" stopColor="#4285F4" />
-            <stop offset="100%" stopColor="#7B61FF" />
+            <stop offset="100%" stopColor="#6A4FE0" />
           </linearGradient>
-          <linearGradient id="ls-shine" x1="14" y1="6" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          <linearGradient id="ls-tile-hi" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.30" />
+            <stop offset="55%" stopColor="#ffffff" stopOpacity="0" />
           </linearGradient>
         </defs>
 
-        {/* Outer shield with rounded corners */}
-        <path
-          d="M24 3.5L8 9v13c0 9.4 6.7 18 16 22.5 9.3-4.5 16-13.1 16-22.5V9L24 3.5z"
-          fill="url(#ls-grad)"
-        />
+        {/* Rounded square tile */}
+        <rect x="0" y="0" width="40" height="40" rx="10" fill="url(#ls-tile)" />
+        {/* Top highlight */}
+        <rect x="0" y="0" width="40" height="40" rx="10" fill="url(#ls-tile-hi)" />
 
-        {/* Inner highlight */}
+        {/* Bold checkmark */}
         <path
-          d="M24 3.5L8 9v13c0 9.4 6.7 18 16 22.5 9.3-4.5 16-13.1 16-22.5V9L24 3.5z"
-          fill="url(#ls-shine)"
-        />
-
-        {/* Subtle inner ring */}
-        <path
-          d="M24 7L11.5 11.4v10.6c0 7.8 5.4 14.9 12.5 18.6 7.1-3.7 12.5-10.8 12.5-18.6V11.4L24 7z"
-          stroke="rgba(255,255,255,0.18)"
-          strokeWidth="1"
-          fill="none"
-        />
-
-        {/* Stylised "L" + check monogram */}
-        <path
-          d="M19 17v12h10"
+          d="M11 20.5 L17.2 26.5 L29 14.5"
           stroke="white"
-          strokeWidth="2.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-        <path
-          d="M22.5 24.5l3.2 3.2 6.3-7"
-          stroke="#A8FFC8"
-          strokeWidth="2.6"
+          strokeWidth="3.6"
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
         />
 
+        {/* Optional subtle pulse */}
         {animated && (
-          <>
-            {/* Sweeping highlight */}
-            <rect x="-20" y="0" width="14" height="48" fill="url(#ls-shine)" opacity="0.65">
-              <animate
-                attributeName="x"
-                from="-20"
-                to="60"
-                dur="2.6s"
-                repeatCount="indefinite"
-              />
-            </rect>
-          </>
+          <rect
+            x="0"
+            y="0"
+            width="40"
+            height="40"
+            rx="10"
+            fill="none"
+            stroke="rgba(255,255,255,0.35)"
+            strokeWidth="1"
+          >
+            <animate
+              attributeName="opacity"
+              values="0;0.6;0"
+              dur="2.2s"
+              repeatCount="indefinite"
+            />
+          </rect>
         )}
       </svg>
     </Box>

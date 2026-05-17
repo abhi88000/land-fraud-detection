@@ -11,6 +11,7 @@ import ReportDisplay from '@/components/analysis/ReportDisplay';
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DescriptionIcon from '@mui/icons-material/Description';
+import LandshieldLogo from '@/components/ui/LandshieldLogo';
 
 export default function DocumentAnalysisPage() {
   const { id } = useParams();
@@ -140,17 +141,36 @@ export default function DocumentAnalysisPage() {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', gap: 2 }}>
         <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-          <Box sx={{
-            width: 64, height: 64, borderRadius: '50%',
-            border: '3px solid #e8f0fe', borderTopColor: '#4285F4',
-            animation: 'spin 1s linear infinite',
-          }} />
-          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <DescriptionIcon sx={{ fontSize: 24, color: '#4285F4' }} />
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: -14,
+              borderRadius: '20px',
+              background:
+                'radial-gradient(closest-side, rgba(66,133,244,0.30), rgba(123,97,255,0.16) 60%, transparent 75%)',
+              filter: 'blur(6px)',
+              '@keyframes doc-halo': {
+                '0%, 100%': { opacity: 0.4, transform: 'scale(1)' },
+                '50%': { opacity: 0.8, transform: 'scale(1.1)' },
+              },
+              animation: 'doc-halo 2.2s ease-in-out infinite',
+            }}
+          />
+          <Box
+            sx={{
+              position: 'relative',
+              '@keyframes doc-breathe': {
+                '0%, 100%': { transform: 'scale(1)' },
+                '50%': { transform: 'scale(1.04)' },
+              },
+              animation: 'doc-breathe 2.2s ease-in-out infinite',
+            }}
+          >
+            <LandshieldLogo size={44} showGlow />
           </Box>
         </Box>
-        <Typography variant="body1" sx={{ color: '#5f6368', animation: 'pulse 2s ease-in-out infinite' }}>
-          Loading document details...
+        <Typography variant="body2" sx={{ color: '#5f6368', mt: 1, animation: 'pulse 2s ease-in-out infinite' }}>
+          Loading document details…
         </Typography>
       </Box>
     );
@@ -183,7 +203,7 @@ export default function DocumentAnalysisPage() {
   const isAnalyzing = !analysisReport && document.status !== DocumentStatus.COMPLETED && document.status !== DocumentStatus.FAILED;
 
   return (
-    <Box sx={{ py: 3, maxWidth: 800, mx: 'auto' }}>
+    <Box sx={{ py: 3, px: { xs: 2, md: 4 }, maxWidth: 1180, width: '100%', mx: 'auto' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
         <Button

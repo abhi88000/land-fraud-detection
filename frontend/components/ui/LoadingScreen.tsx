@@ -17,69 +17,56 @@ const LoadingScreen = () => {
         width: '100vw',
         overflow: 'hidden',
         background:
-          'radial-gradient(1200px 600px at 50% -10%, #eaf1ff 0%, transparent 60%), linear-gradient(180deg, #ffffff 0%, #f6f8fc 100%)',
-        '@keyframes ls-spin': {
-          to: { transform: 'rotate(360deg)' },
+          'radial-gradient(900px 500px at 50% -10%, #eaf1ff 0%, transparent 60%), linear-gradient(180deg, #ffffff 0%, #f6f8fc 100%)',
+        '@keyframes ls-breathe': {
+          '0%, 100%': { transform: 'scale(1)', opacity: 1 },
+          '50%': { transform: 'scale(1.04)', opacity: 0.94 },
         },
-        '@keyframes ls-float': {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-6px)' },
-        },
-        '@keyframes ls-pulse': {
-          '0%, 100%': { opacity: 0.55 },
-          '50%': { opacity: 1 },
+        '@keyframes ls-halo': {
+          '0%, 100%': { opacity: 0.35, transform: 'scale(1)' },
+          '50%': { opacity: 0.7, transform: 'scale(1.12)' },
         },
         '@keyframes ls-bar': {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' },
         },
+        '@keyframes ls-fade': {
+          '0%, 100%': { opacity: 0.55 },
+          '50%': { opacity: 1 },
+        },
       }}
     >
-      {/* Logo + ring */}
-      <Box sx={{ position: 'relative', display: 'inline-flex', mb: 3.5 }}>
-        {/* outer rotating gradient ring */}
+      {/* Logo with soft glow halo (no rotation) */}
+      <Box sx={{ position: 'relative', mb: 3.5 }}>
+        {/* Soft halo */}
         <Box
           sx={{
-            width: 104,
-            height: 104,
-            borderRadius: '50%',
+            position: 'absolute',
+            inset: -18,
+            borderRadius: '24px',
             background:
-              'conic-gradient(from 0deg, #4285F4, #7B61FF, #4285F4 50%, transparent 50%, transparent 100%)',
-            animation: 'ls-spin 1.6s linear infinite',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+              'radial-gradient(closest-side, rgba(66,133,244,0.35), rgba(123,97,255,0.18) 60%, transparent 75%)',
+            filter: 'blur(8px)',
+            animation: 'ls-halo 2.4s ease-in-out infinite',
+          }}
+        />
+        <Box
+          sx={{
+            position: 'relative',
+            animation: 'ls-breathe 2.4s ease-in-out infinite',
           }}
         >
-          <Box
-            sx={{
-              width: 92,
-              height: 92,
-              borderRadius: '50%',
-              bgcolor: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 10px 30px rgba(66, 133, 244, 0.18)',
-            }}
-          >
-            <Box sx={{ animation: 'ls-float 3s ease-in-out infinite' }}>
-              <LandshieldLogo size={52} animated showGlow />
-            </Box>
-          </Box>
+          <LandshieldLogo size={56} showGlow />
         </Box>
       </Box>
 
       {/* Wordmark */}
       <Typography
         sx={{
-          fontSize: '1.4rem',
+          fontSize: '1.35rem',
           fontWeight: 700,
           letterSpacing: '-0.5px',
-          background: 'linear-gradient(90deg, #1a73e8, #7B61FF)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
+          color: '#202124',
         }}
       >
         Landshield
@@ -89,16 +76,16 @@ const LoadingScreen = () => {
         sx={{
           color: '#5f6368',
           mt: 0.5,
-          fontSize: '0.78rem',
-          letterSpacing: '0.5px',
+          fontSize: '0.76rem',
+          letterSpacing: '0.4px',
           textTransform: 'uppercase',
-          animation: 'ls-pulse 1.8s ease-in-out infinite',
+          animation: 'ls-fade 1.8s ease-in-out infinite',
         }}
       >
         Securing your land records
       </Typography>
 
-      {/* Slim progress shimmer */}
+      {/* Slim shimmer bar */}
       <Box
         sx={{
           mt: 3,
