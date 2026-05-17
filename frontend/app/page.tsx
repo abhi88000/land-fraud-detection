@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, Typography, Box } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth';
+import LandshieldLogo from '@/components/ui/LandshieldLogo';
 
 // Particle system - scattered confetti like Google Antigravity
 function ParticleField() {
@@ -187,15 +188,8 @@ export default function HomePage() {
               transition: 'all 0.6s ease 0.2s',
             }}
           >
-            <Box sx={{
-              width: 28, height: 28, borderRadius: '8px',
-              background: 'linear-gradient(135deg, #4285F4, #7B61FF)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontSize: '14px', fontWeight: 700,
-            }}>
-              L
-            </Box>
-            <Typography sx={{ fontSize: '0.9rem', color: '#5f6368', fontWeight: 500 }}>
+            <LandshieldLogo size={28} />
+            <Typography sx={{ fontSize: '0.9rem', color: '#5f6368', fontWeight: 600, letterSpacing: '-0.2px' }}>
               Landshield
             </Typography>
           </Box>

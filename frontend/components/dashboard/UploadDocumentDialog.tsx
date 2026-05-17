@@ -206,7 +206,9 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
           onDrop={handleDrop}
           sx={{
             border: `2px dashed ${dragOver ? '#1a73e8' : '#dadce0'}`,
-            borderRadius: '14px', p: files.length > 0 ? 2 : 3.5, textAlign: 'center',
+            borderRadius: '14px',
+            p: files.length > 0 ? 1.25 : 3.5,
+            textAlign: files.length > 0 ? 'left' : 'center',
             bgcolor: dragOver ? '#e8f0fe' : '#fafafa',
             transition: 'all 0.2s ease',
             cursor: 'pointer',
@@ -232,29 +234,56 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
               </Typography>
             </label>
           ) : (
-            <Box>
+            <Box sx={{ textAlign: 'left' }}>
               {files.map((f, i) => (
-                <Box key={i} sx={{
-                  display: 'flex', alignItems: 'center', gap: 1.5, py: 0.75, px: 1,
-                  borderRadius: '8px', '&:hover': { bgcolor: '#f1f3f4' },
-                }}>
-                  <InsertDriveFileIcon sx={{ fontSize: 18, color: '#1a73e8' }} />
-                  <Typography variant="body2" sx={{ flex: 1, color: '#202124', fontSize: '0.85rem' }} noWrap>
+                <Box
+                  key={i}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.25,
+                    py: 0.6,
+                    px: 1,
+                    borderRadius: '8px',
+                    textAlign: 'left',
+                    '&:hover': { bgcolor: '#f1f3f4' },
+                  }}
+                >
+                  <InsertDriveFileIcon sx={{ fontSize: 18, color: '#1a73e8', flexShrink: 0 }} />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      color: '#202124',
+                      fontSize: '0.85rem',
+                      textAlign: 'left',
+                    }}
+                    noWrap
+                    title={f.name}
+                  >
                     {f.name}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: '#80868b' }}>
+                  <Typography variant="caption" sx={{ color: '#80868b', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
                     {(f.size / 1024 / 1024).toFixed(1)} MB
                   </Typography>
-                  <IconButton size="small" onClick={() => removeFile(i)} sx={{ p: 0.25 }}>
+                  <IconButton size="small" onClick={() => removeFile(i)} sx={{ p: 0.25, flexShrink: 0 }}>
                     <DeleteOutlineIcon sx={{ fontSize: 16, color: '#d93025' }} />
                   </IconButton>
                 </Box>
               ))}
-              <label htmlFor="file-input">
-                <Button component="span" size="small" sx={{ mt: 1, textTransform: 'none', color: '#1a73e8', fontSize: '0.8rem' }}>
-                  + Add more files
-                </Button>
-              </label>
+              <Box sx={{ borderTop: '1px solid #ececec', mt: 0.75, pt: 0.5 }}>
+                <label htmlFor="file-input">
+                  <Button
+                    component="span"
+                    size="small"
+                    startIcon={<CloudUploadIcon sx={{ fontSize: 16 }} />}
+                    sx={{ textTransform: 'none', color: '#1a73e8', fontSize: '0.8rem', fontWeight: 500 }}
+                  >
+                    Add more files
+                  </Button>
+                </label>
+              </Box>
             </Box>
           )}
         </Box>

@@ -1,0 +1,73 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 2582 >>
+stream
+BT /F2 11 Tf 50 760 Td (BRUHAT BENGALURU MAHANAGARA PALIKE \(BBMP\)) Tj ET
+BT /F1 10 Tf 50 746 Td (Property Tax Department - e-Receipt) Tj ET
+50 734 m 562 734 l S
+BT /F2 14 Tf 236.0 724 Td (PROPERTY TAX RECEIPT) Tj ET
+BT /F2 11 Tf 50 704 Td (Receipt No: PT/482918/2026) Tj ET
+BT /F1 11 Tf 50 690 Td (Receipt Date: 17-05-2026 09:29:34) Tj ET
+BT /F1 11 Tf 50 676 Td (Transaction ID: TXN13025160) Tj ET
+BT /F2 12 Tf 50 656 Td (PROPERTY DETAILS:) Tj ET
+BT /F1 10 Tf 50 640 Td (Property ID: BBM/JS/2019/PID-45678) Tj ET
+BT /F1 10 Tf 50 626 Td (Zone: South Zone, JP Nagar) Tj ET
+BT /F1 10 Tf 50 612 Td (Owner Name: Dr. Priya Ramesh) Tj ET
+BT /F1 10 Tf 50 598 Td (Property Type: Residential \(Self-Occupied\)) Tj ET
+BT /F1 10 Tf 50 584 Td (Built-up Area: 3,200 sq ft) Tj ET
+BT /F2 12 Tf 50 564 Td (ASSESSMENT YEAR: 2025-2026) Tj ET
+50 325 512 225 re S
+BT /F2 10 Tf 58 544 Td (TAX BREAKDOWN) Tj ET
+BT /F1 10 Tf 58 530 Td (Particulars                              Amount \(Rs.\)) Tj ET
+BT /F1 10 Tf 58 517 Td (---------------------------------------------------) Tj ET
+BT /F1 10 Tf 58 504 Td (Annual Property Tax                       18,500.00) Tj ET
+BT /F1 10 Tf 58 491 Td (Conservancy Cess                           2,200.00) Tj ET
+BT /F1 10 Tf 58 478 Td (Health Cess                                1,100.00) Tj ET
+BT /F1 10 Tf 58 465 Td (Education Cess                               800.00) Tj ET
+BT /F1 10 Tf 58 452 Td (Library Cess                                 400.00) Tj ET
+BT /F1 10 Tf 58 439 Td (Solid Waste Mgmt Fee                       1,500.00) Tj ET
+BT /F1 10 Tf 58 426 Td (Beautification Charge                        500.00) Tj ET
+BT /F1 10 Tf 58 413 Td (---------------------------------------------------) Tj ET
+BT /F1 10 Tf 58 400 Td (TOTAL TAX PAYABLE                         25,000.00) Tj ET
+BT /F1 10 Tf 58 387 Td (Less: Early Payment Rebate \(5%\)           -1,250.00) Tj ET
+BT /F1 10 Tf 58 374 Td (Less: Online Payment Rebate \(2%\)            -500.00) Tj ET
+BT /F1 10 Tf 58 361 Td (---------------------------------------------------) Tj ET
+BT /F1 10 Tf 58 348 Td (NET AMOUNT PAID                           23,250.00) Tj ET
+BT /F1 10 Tf 50 325 Td (Payment Mode: Net Banking \(HDFC Bank\)) Tj ET
+BT /F2 11 Tf 50 311 Td (Payment Status: SUCCESS / PAID IN FULL) Tj ET
+BT /F1 10 Tf 50 297 Td (Penalty/Interest: NIL) Tj ET
+BT /F1 10 Tf 50 283 Td (Next Due Date: 31-03-2027) Tj ET
+BT /F2 11 Tf 50 265 Td (Tax Clearance Status: CLEAR - No dues outstanding) Tj ET
+BT /F1 9 Tf 320 231 Td (System Generated Receipt) Tj ET
+BT /F1 9 Tf 355 217 Td (\(Digitally Signed\)) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000002885 00000 n 
+0000002955 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+3030
+%%EOF

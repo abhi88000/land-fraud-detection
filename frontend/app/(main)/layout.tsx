@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import LoadingScreen from '@/components/ui/LoadingScreen';
-import ShieldIcon from '@mui/icons-material/Shield';
+import LandshieldLogo from '@/components/ui/LandshieldLogo';
 import HomeIcon from '@mui/icons-material/Home';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InsightsIcon from '@mui/icons-material/Insights';
@@ -52,9 +52,9 @@ export default function MainLayout({
       >
         <Toolbar sx={{ gap: 1 }}>
           {/* Logo */}
-          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, marginRight: 24 }}>
-            <ShieldIcon sx={{ color: '#4285F4', fontSize: 28 }} />
-            <Typography variant="h6" fontWeight={600} sx={{ color: '#202124', letterSpacing: '-0.5px' }}>
+          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, marginRight: 24 }}>
+            <LandshieldLogo size={30} />
+            <Typography variant="h6" fontWeight={700} sx={{ color: '#202124', letterSpacing: '-0.5px' }}>
               Landshield
             </Typography>
           </Link>

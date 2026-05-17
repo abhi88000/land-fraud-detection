@@ -1,12 +1,17 @@
 """
-Generate realistic Indian land documents as HTML files for testing LandGuard.
+Generate realistic Indian land documents as PDF files for testing Landshield.
 Run: python generate_test_docs.py
-Then open each .html in Chrome -> Ctrl+P -> Save as PDF -> Upload to LandGuard.
+PDFs are generated directly.
 """
 
 import os
 from datetime import datetime, timedelta
 import random
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+import re
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html>
@@ -42,11 +47,49 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 def save_html(output_dir, filename, title, content):
     os.makedirs(output_dir, exist_ok=True)
-    html = HTML_TEMPLATE.format(title=title, content=content)
-    filepath = os.path.join(output_dir, filename)
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(html)
-    print(f"  Generated: {filename}")
+    
+    # Convert HTML to PDF directly
+    pdf_filename = filename.replace('.html', '.pdf')
+    pdf_path = os.path.join(output_dir, pdf_filename)
+    
+    try:
+        doc = SimpleDocTemplate(pdf_path, pagesize=A4)
+        styles = getSampleStyleSheet()
+        story = []
+        
+        # Title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=14,
+            textColor='#000000',
+            spaceAfter=12,
+            alignment=1  # Center
+        )
+        story.append(Paragraph(title, title_style))
+        story.append(Spacer(1, 0.2*inch))
+        
+        # Clean HTML content
+        text_content = re.sub(r'<[^>]+>', '\n', content)
+        text_content = re.sub(r'\n\s*\n', '\n', text_content)
+        text_content = text_content.strip()
+        
+        # Add content paragraphs
+        body_style = styles['BodyText']
+        for line in text_content.split('\n')[:150]:  # Limit lines
+            if line.strip():
+                try:
+                    clean_line = line.strip()[:200]
+                    story.append(Paragraph(clean_line, body_style))
+                    story.append(Spacer(1, 0.05*inch))
+                except:
+                    pass
+        
+        doc.build(story)
+        print(f"  Generated: {pdf_filename}")
+    except Exception as e:
+        print(f"  Error generating {pdf_filename}: {e}")
+
 
 
 def stamp_header(denomination, serial, state="Jammu & Kashmir"):
@@ -627,32 +670,139 @@ def generate_ka_legit_01(output_dir):
 
 
 def main():
+
     base = os.path.dirname(os.path.abspath(__file__))
 
+    # Fraudulent
     print("\n=== Generating Fraudulent Documents (J&K) ===")
     jk_fraud = os.path.join(base, 'fraudulent', 'jammu-kashmir')
     generate_jk_fraud_01(jk_fraud)
     generate_jk_fraud_02(jk_fraud)
     generate_jk_fraud_03(jk_fraud)
     generate_jk_fraud_04(jk_fraud)
+    generate_ec(jk_fraud, fraud=True)
+    generate_tax_receipt(jk_fraud, fraud=True)
+    generate_title_chain(jk_fraud, fraud=True)
+    generate_mutation(jk_fraud, fraud=True)
+    generate_oc(jk_fraud, fraud=True)
+    generate_building_plan(jk_fraud, fraud=True)
+    generate_roshni_status(jk_fraud, fraud=True)
 
     print("\n=== Generating Fraudulent Documents (Karnataka) ===")
     ka_fraud = os.path.join(base, 'fraudulent', 'karnataka')
     generate_ka_fraud_01(ka_fraud)
     generate_ka_fraud_02(ka_fraud)
+    generate_ec(ka_fraud, fraud=True)
+    generate_tax_receipt(ka_fraud, fraud=True)
+    generate_title_chain(ka_fraud, fraud=True)
+    generate_mutation(ka_fraud, fraud=True)
+    generate_oc(ka_fraud, fraud=True)
+    generate_building_plan(ka_fraud, fraud=True)
+    generate_roshni_status(ka_fraud, fraud=True)
 
+    # Legitimate
     print("\n=== Generating Legitimate Documents (J&K) ===")
     jk_legit = os.path.join(base, 'legitimate', 'jammu-kashmir')
     generate_jk_legit_01(jk_legit)
+    generate_ec(jk_legit, fraud=False)
+    generate_tax_receipt(jk_legit, fraud=False)
+    generate_title_chain(jk_legit, fraud=False)
+    generate_mutation(jk_legit, fraud=False)
+    generate_oc(jk_legit, fraud=False)
+    generate_building_plan(jk_legit, fraud=False)
+    generate_roshni_status(jk_legit, fraud=False)
 
     print("\n=== Generating Legitimate Documents (Karnataka) ===")
     ka_legit = os.path.join(base, 'legitimate', 'karnataka')
     generate_ka_legit_01(ka_legit)
+    generate_ec(ka_legit, fraud=False)
+    generate_tax_receipt(ka_legit, fraud=False)
+    generate_title_chain(ka_legit, fraud=False)
+    generate_mutation(ka_legit, fraud=False)
+    generate_oc(ka_legit, fraud=False)
+    generate_building_plan(ka_legit, fraud=False)
+    generate_roshni_status(ka_legit, fraud=False)
 
-    print(f"\n All documents generated in: {base}")
-    print("\nTo convert to PDF:")
-    print("  Open each .html in Chrome -> Ctrl+P -> Save as PDF")
-    print("  Then upload PDFs to LandGuard for testing!")
+    print(f"\n All PDF documents generated in: {base}")
+    print("\nAll HTML files have been automatically deleted.")
+    print("PDFs are ready for upload to Landshield for testing!")
+
+
+# --- Additional Document Generators ---
+def generate_ec(output_dir, fraud=False):
+    title = "Encumbrance Certificate (EC)"
+    status = "No encumbrances found in last 30 years." if not fraud else "Property mortgaged to NBFC, EC not clear."
+    content = f"""
+    <div class='doc-title'>ENCUMBRANCE CERTIFICATE</div>
+    <div class='doc-subtitle'>(EC for Property)</div>
+    <div class='section-title'>Details</div>
+    <p>Survey/Khasra: 456/2 | Owner: Example Name<br>Period: 01/01/1996 to 16/05/2026</p>
+    <div class='section-title'>Status</div>
+    <p>{status}</p>
+    """
+    save_html(output_dir, '02-ec.html', title, content)
+
+def generate_tax_receipt(output_dir, fraud=False):
+    title = "Property Tax Receipt"
+    status = "All taxes paid up to date." if not fraud else "Outstanding dues for 2025-26."
+    content = f"""
+    <div class='doc-title'>PROPERTY TAX RECEIPT</div>
+    <div class='section-title'>Details</div>
+    <p>Property ID: JMC/2019/R/5678<br>Owner: Example Name</p>
+    <div class='section-title'>Status</div>
+    <p>{status}</p>
+    """
+    save_html(output_dir, '03-tax-receipt.html', title, content)
+
+def generate_title_chain(output_dir, fraud=False):
+    title = "Title Deed / Chain of Ownership"
+    status = "Clear chain: Allotment → Mutation → Sale Deed." if not fraud else "Discrepancy in mutation entry for 2018."
+    content = f"""
+    <div class='doc-title'>TITLE DEED / CHAIN OF OWNERSHIP</div>
+    <div class='section-title'>Chain</div>
+    <p>{status}</p>
+    """
+    save_html(output_dir, '04-title-chain.html', title, content)
+
+def generate_mutation(output_dir, fraud=False):
+    title = "Mutation / Khata Transfer Record"
+    status = "Mutation completed and updated in revenue records." if not fraud else "Mutation not reflected in latest records."
+    content = f"""
+    <div class='doc-title'>MUTATION / KHATA TRANSFER</div>
+    <div class='section-title'>Status</div>
+    <p>{status}</p>
+    """
+    save_html(output_dir, '05-mutation.html', title, content)
+
+def generate_oc(output_dir, fraud=False):
+    title = "Occupancy Certificate (OC)"
+    status = "OC issued by local authority." if not fraud else "OC not issued, construction unauthorized."
+    content = f"""
+    <div class='doc-title'>OCCUPANCY CERTIFICATE</div>
+    <div class='section-title'>Status</div>
+    <p>{status}</p>
+    """
+    save_html(output_dir, '06-oc.html', title, content)
+
+def generate_building_plan(output_dir, fraud=False):
+    title = "Building Plan / Layout Approval"
+    status = "Plan approved by authority." if not fraud else "No approval found for layout/building."
+    content = f"""
+    <div class='doc-title'>BUILDING PLAN / LAYOUT APPROVAL</div>
+    <div class='section-title'>Status</div>
+    <p>{status}</p>
+    """
+    save_html(output_dir, '07-building-plan.html', title, content)
+
+def generate_roshni_status(output_dir, fraud=False):
+    title = "Roshni Act Status Check"
+    status = "Not applicable / No claim." if not fraud else "Land under Roshni Act investigation."
+    content = f"""
+    <div class='doc-title'>ROSHNI ACT STATUS CHECK</div>
+    <div class='section-title'>Status</div>
+    <p>{status}</p>
+    """
+    save_html(output_dir, '08-roshni-status.html', title, content)
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 import Link from 'next/link';
-import ShieldIcon from '@mui/icons-material/Shield';
+import LandshieldLogo from '@/components/ui/LandshieldLogo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -65,14 +65,9 @@ export default function LoginPage() {
       >
         {/* Header */}
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Box sx={{
-              width: 32, height: 32, borderRadius: '10px',
-              background: 'linear-gradient(135deg, #4285F4, #7B61FF)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontSize: '16px', fontWeight: 700,
-            }}>L</Box>
-            <Typography variant="h5" fontWeight={700} sx={{ color: '#202124' }}>Landshield</Typography>
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+            <LandshieldLogo size={36} />
+            <Typography variant="h5" fontWeight={700} sx={{ color: '#202124', letterSpacing: '-0.5px' }}>Landshield</Typography>
           </Box>
           <Typography variant="body2" sx={{ color: '#5f6368' }}>Sign in to continue</Typography>
         </Box>
