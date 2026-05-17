@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime, timezone
 from typing import List
 from app.agents.core.base import BaseAgent
 from app.models.analysis import ExtractedData, LegalFinding, Severity
@@ -19,6 +20,7 @@ CORE RULES — read carefully:
 4. State-specific context: only flag a state law if the document is actually subject to it. Do NOT add "informational" entries about every state law that might exist in that region.
 5. Default severity is `low`. Reserve `medium` for items the user should clarify with their lawyer, `high` for clear gaps that block the transaction, `critical` for situations that could void title or invite prosecution. Do not over-grade.
 6. Frame findings as advisory, never accusatory. The user's document may be perfectly valid.
+7. DATES: The user prompt will give you TODAY'S DATE. Use it as the reference for "past" vs "future". A date is "future-dated" ONLY if it is strictly AFTER today's date. Dates from earlier this year, last year, or any prior year are PAST — never flag them as future. Do NOT rely on your training data to decide what "today" is.
 
 WHAT TO CHECK (only flag if you can point to a concrete issue in the document):
 - Registration & stamp duty actually recorded in the document (missing/inadequate vs. what's typical for the value)
@@ -64,6 +66,8 @@ class LegalRulesAgent(BaseAgent[ExtractedData, List[LegalFinding]]):
                 state = extracted_data.property_details.state or ""
 
             prompt_text = (
+                f"TODAY'S DATE (for reference): {datetime.now(timezone.utc).strftime('%Y-%m-%d')}. "
+                f"Treat any date on or before today as a PAST date. Do NOT flag dates from this year or earlier as 'future-dated'.\n\n"
                 f"Analyze this extracted land document data for legal compliance:\n\n"
                 f"{json.dumps(extracted_data.dict(), indent=2, default=str)}\n\n"
                 f"Location: {district}, {state}, India. Land Type: {land_type or 'Not specified'}.\n"

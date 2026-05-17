@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime, timezone
 from typing import List
 from app.agents.core.base import BaseAgent
 from app.models.analysis import ExtractedData, FraudFinding, FraudType, Severity
@@ -18,6 +19,7 @@ CORE RULES — read carefully:
 3. Do NOT flag missing extraction fields (null values) as fraud — that's an OCR/parsing limitation, not suspicion.
 4. Default severity is `low`. Reserve `medium` for items worth clarifying, `high` for clear red flags (mismatched names, broken chain, value far off market), `critical` for items that strongly suggest fraud (forged signatures, fabricated documents). Do not over-grade trivial cosmetic differences (e.g. "Shri" vs "Col." title prefix on a name) — those are at most `low`.
 5. Frame findings as "worth verifying" not accusations. The user's document may be perfectly valid.
+6. DATES: The user prompt will give you TODAY'S DATE. Use it as the reference for "past" vs "future". A date is "future-dated" ONLY if it is strictly AFTER today's date. Dates from earlier this year, last year, or any prior year are PAST — never flag them as future. Do NOT rely on your training data to decide what "today" is.
 
 CONCRETE THINGS TO CHECK (only flag if you see real evidence in the data):
 - NAME_MISMATCH — the same person appears with materially different names in different fields (not just a salutation/title difference)
@@ -63,6 +65,9 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
                 state = extracted_data.property_details.state or ""
 
             prompt_text = (
+                f"TODAY'S DATE (for reference): {datetime.now(timezone.utc).strftime('%Y-%m-%d')}. "
+                f"Treat any date on or before today as a PAST date. Do NOT flag dates from this year or earlier as 'future-dated' "
+                f"unless they are strictly AFTER today.\n\n"
                 f"Review this extracted land document data and highlight areas the user should verify:\n\n"
                 f"{json.dumps(extracted_data.dict(), indent=2, default=str)}\n\n"
                 f"Location: {district}, {state}, India.\n"
