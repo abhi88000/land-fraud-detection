@@ -1,6 +1,8 @@
 ## 1. Overview
 This project is **LandGuard** — an AI-powered land document verification platform that helps common people detect fraud in Indian land transactions. Built with **Python FastAPI** backend, **Next.js 14 + Material UI** frontend, and **Google Agent Development Kit (ADK)** for multi-agent orchestration. Deployed on **Google Cloud Run** with a full enterprise GCP architecture.
 
+**Built end-to-end with Google Gemini.** Gemini is the *only* AI used in this project — both at runtime (Gemini 2.5 Flash via Vertex AI powers every agent) and during development (Gemini was the sole AI pair-programmer used to scaffold, refactor, debug, and document the codebase, infrastructure, and presentation materials). No other AI assistants, copilots, or LLMs were used in any part of the build.
+
 ## Key Goals:
 - Agentic AI architecture with multiple specialized agents
 - Production-grade code quality and security
@@ -92,3 +94,16 @@ Upload → GCS → Orchestrator → [Redis check → Firestore check → Gemini 
 - pytest for Python
 - Jest + React Testing Library for frontend
 - Every endpoint must have unit tests
+
+## 10. AI Development Partner — Gemini Only
+This project was built using **Google Gemini as the sole AI assistant**, both for product runtime and for the development workflow itself. To keep the build cohesive and fully within the Google ecosystem, no other AI tool (no GitHub Copilot, no Claude, no ChatGPT, no Cursor AI, no third-party LLM) was used at any stage.
+
+Gemini was used for:
+- **Code generation & refactoring** — FastAPI endpoints, ADK agent definitions, Next.js components, Pydantic schemas, async orchestration logic.
+- **Infrastructure as code** — Terraform modules for Cloud Run, Memorystore, Pub/Sub, BigQuery, Secret Manager, VPC connector, IAM bindings.
+- **Debugging** — stack-trace analysis, Cloud Run cold-start tuning, SSE timeout alignment, Redis fail-open verification, rate-limiter review.
+- **Documentation** — this `GEMINI.md`, `README.md`, backend `README.md`, evaluator quick-start, sample document descriptions.
+- **Presentation materials** — the PowerPoint deck generator (`docs/deck/generate_landshield_deck.ps1`) and slide content.
+- **Prompt engineering** — system prompts for the Parser, Legal, Fraud, and Report agents; Google Search grounding configuration.
+
+Runtime AI is exclusively **Gemini 2.5 Flash** via Vertex AI, accessed through `google-genai` and Google ADK. Text embeddings use Google's `text-embedding-005`. There are no calls to OpenAI, Anthropic, or any non-Google model provider anywhere in the codebase — verifiable by grepping `requirements.txt` and the source tree.
