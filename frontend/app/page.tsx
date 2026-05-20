@@ -70,7 +70,7 @@ function DocumentField() {
         rotationSpeed: (Math.random() - 0.5) * 0.0014,
         kind: kinds[Math.floor(Math.random() * kinds.length)],
         color: palette[Math.floor(Math.random() * palette.length)],
-        opacity: 0.28 + Math.random() * 0.22,
+        opacity: 0.14 + Math.random() * 0.16,
       });
     }
 
@@ -466,7 +466,7 @@ function DocumentField() {
   return (
     <canvas
       ref={canvasRef}
-      style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}
     />
   );
 }
@@ -524,6 +524,19 @@ export default function HomePage() {
         }}
       >
         <DocumentField />
+
+        {/* Soft radial fade behind hero text so icons don't compete with copy */}
+        <Box
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 0,
+            pointerEvents: 'none',
+            background:
+              'radial-gradient(ellipse 55% 45% at 50% 45%, rgba(250,250,250,0.92) 0%, rgba(250,250,250,0.75) 45%, rgba(250,250,250,0) 75%)',
+          }}
+        />
 
         {/* Hero content */}
         <Box sx={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 750 }}>
