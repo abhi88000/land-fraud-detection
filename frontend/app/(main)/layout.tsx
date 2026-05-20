@@ -49,11 +49,19 @@ export default function MainLayout({
           color: '#3c4043',
         }}
       >
-        <Toolbar sx={{ gap: 1 }}>
+        <Toolbar sx={{ gap: { xs: 0.5, sm: 1 }, px: { xs: 1.5, sm: 3 }, minHeight: { xs: 56, sm: 64 } }}>
           {/* Logo */}
-          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, marginRight: 24 }}>
+          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, marginRight: 16 }}>
             <LandshieldLogo size={30} />
-            <Typography variant="h6" fontWeight={700} sx={{ color: '#202124', letterSpacing: '-0.5px' }}>
+            <Typography
+              variant="h6"
+              fontWeight={700}
+              sx={{
+                color: '#202124',
+                letterSpacing: '-0.5px',
+                display: { xs: 'none', sm: 'block' },
+              }}
+            >
               Landshield
             </Typography>
           </Link>
@@ -71,12 +79,15 @@ export default function MainLayout({
                   fontWeight: pathname === '/' ? 600 : 400,
                   fontSize: '0.875rem',
                   borderRadius: '20px',
-                  px: 2,
+                  px: { xs: 1.25, sm: 2 },
+                  minWidth: 0,
                   textDecoration: 'none',
+                  '& .MuiButton-startIcon': { mr: { xs: 0, sm: 1 } },
+                  '& .nav-label': { display: { xs: 'none', sm: 'inline' } },
                   '&:hover': { bgcolor: '#f1f3f4' },
                 }}
               >
-                Home
+                <span className="nav-label">Home</span>
               </Button>
               <Button
                 component={Link}
@@ -88,12 +99,15 @@ export default function MainLayout({
                   fontWeight: pathname?.startsWith('/dashboard') ? 600 : 400,
                   fontSize: '0.875rem',
                   borderRadius: '20px',
-                  px: 2,
+                  px: { xs: 1.25, sm: 2 },
+                  minWidth: 0,
                   textDecoration: 'none',
+                  '& .MuiButton-startIcon': { mr: { xs: 0, sm: 1 } },
+                  '& .nav-label': { display: { xs: 'none', sm: 'inline' } },
                   '&:hover': { bgcolor: '#f1f3f4' },
                 }}
               >
-                Dashboard
+                <span className="nav-label">Dashboard</span>
               </Button>
             </Box>
           )}
@@ -140,8 +154,8 @@ export default function MainLayout({
       </AppBar>
 
       {/* Main content */}
-      <Box component="main" sx={{ flexGrow: 1, mt: '64px' }}>
-        <Container maxWidth="lg" sx={{ py: 3 }}>
+      <Box component="main" sx={{ flexGrow: 1, mt: { xs: '56px', sm: '64px' } }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 1.5, sm: 3 } }}>
           {children}
         </Container>
       </Box>

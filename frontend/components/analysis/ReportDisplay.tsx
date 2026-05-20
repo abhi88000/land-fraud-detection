@@ -22,6 +22,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { AnalysisReport, LegalFinding, FraudFinding, Party } from '@/lib/types';
 
 type Severity = 'critical' | 'high' | 'medium' | 'low';
@@ -450,16 +451,23 @@ function FindingCard({ f }: { f: UnifiedFinding }) {
   const [open, setOpen] = useState(false);
   const s = SEV_STYLES[f.severity];
   const hasBody = !!(f.body || f.recommendation || (f.evidence && f.evidence.length));
+  const isCritical = f.severity === 'critical';
 
   return (
     <Box
       sx={{
         borderRadius: '12px',
-        bgcolor: '#fff',
+        bgcolor: isCritical ? '#fff5f5' : '#fff',
         overflow: 'hidden',
-        boxShadow: '0 0 0 1px rgba(60,64,67,0.07)',
+        boxShadow: isCritical
+          ? '0 0 0 1.5px #d93025, 0 2px 8px rgba(217,48,37,0.12)'
+          : '0 0 0 1px rgba(60,64,67,0.07)',
         transition: 'box-shadow 0.2s ease, transform 0.2s ease',
-        '&:hover': { boxShadow: '0 1px 3px rgba(60,64,67,0.10), 0 0 0 1px rgba(60,64,67,0.10)' },
+        '&:hover': {
+          boxShadow: isCritical
+            ? '0 0 0 1.5px #d93025, 0 4px 14px rgba(217,48,37,0.18)'
+            : '0 1px 3px rgba(60,64,67,0.10), 0 0 0 1px rgba(60,64,67,0.10)',
+        },
       }}
     >
       <Box
@@ -470,16 +478,30 @@ function FindingCard({ f }: { f: UnifiedFinding }) {
           position: 'relative',
         }}
       >
-        {/* Severity stripe */}
-        <Box sx={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, bgcolor: s.tone }} />
-        <Box sx={{ pl: 0.5, flex: 1, minWidth: 0 }}>
+        {/* Severity stripe — thicker + brighter for Critical */}
+        <Box sx={{
+          position: 'absolute', left: 0, top: 0, bottom: 0,
+          width: isCritical ? 6 : 3,
+          bgcolor: isCritical ? '#b71c1c' : s.tone,
+        }} />
+        <Box sx={{ pl: isCritical ? 1 : 0.5, flex: 1, minWidth: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.4, flexWrap: 'wrap' }}>
+            {isCritical && (
+              <ErrorOutlineIcon sx={{ fontSize: 16, color: '#b71c1c' }} />
+            )}
             <Chip
               label={s.label}
               size="small"
               sx={{
-                height: 18, fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.03em',
-                bgcolor: s.tint, color: s.tone, borderRadius: '4px',
+                height: 20,
+                fontSize: isCritical ? '0.66rem' : '0.62rem',
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+                textTransform: isCritical ? 'uppercase' : 'none',
+                bgcolor: isCritical ? '#b71c1c' : s.tint,
+                color: isCritical ? '#fff' : s.tone,
+                borderRadius: '4px',
+                px: isCritical ? 0.5 : 0,
               }}
             />
             <Typography sx={{
@@ -489,7 +511,12 @@ function FindingCard({ f }: { f: UnifiedFinding }) {
               {f.source === 'legal' ? 'Legal' : 'Risk indicator'}
             </Typography>
           </Box>
-          <Typography sx={{ fontSize: '0.86rem', color: '#202124', fontWeight: 500, lineHeight: 1.45 }}>
+          <Typography sx={{
+            fontSize: '0.86rem',
+            color: isCritical ? '#7f1d1d' : '#202124',
+            fontWeight: isCritical ? 600 : 500,
+            lineHeight: 1.45,
+          }}>
             {f.title}
           </Typography>
         </Box>
