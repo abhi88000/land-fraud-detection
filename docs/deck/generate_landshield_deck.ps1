@@ -20,16 +20,17 @@ $LAY_TITLE_ONLY      = 11  # Title only (we add shapes/tables ourselves)
 $LAY_BLANK           = 12  # No placeholders (we won't use it any more)
 
 # -- Brand palette (BGR for PowerPoint COM) ----------------------------------
-$brandPrimary = 0xE8731A   # #1A73E8
-$brandDark    = 0xCC6517   # #1765CC
-$brandGreen   = 0x3E8E1E   # #1E8E3E
-$slate        = 0x68635F   # #5F6368
-$ink          = 0x242420   # #202124
-$ink2         = 0x43403C   # #3C4043
-$tintBlue     = 0xFEE2EA
-$tintGreen    = 0xEAF4E6
-$tintCyan     = 0xE0F7FE
-$tintViolet   = 0xE6E8FC
+# Professional navy + slate + gold scheme.
+$brandPrimary = 0x5F3A1F   # #1F3A5F deep navy   (primary)
+$brandDark    = 0x432A10   # #102A43 darker navy (titles/accents)
+$brandGreen   = 0x0B86B8   # #B8860B muted gold  (accent / agent tier)
+$slate        = 0x80644A   # #4A6480 slate       (connectors)
+$ink          = 0x53402E   # #2E4053 ink         (body text)
+$ink2         = 0x7E6D5D   # #5D6D7E soft ink    (secondary text)
+$tintBlue     = 0xF8F1EA   # #EAF1F8 light navy tint
+$tintGreen    = 0xDDF3FA   # #FAF3DD light gold tint
+$tintCyan     = 0xF8F4F0   # #F0F4F8 light slate tint
+$tintViolet   = 0xF3EDE6   # #E6EDF3 cool stone tint
 
 # --- Placeholder helpers ----------------------------------------------------
 # Find a placeholder of a given type on a slide.
@@ -187,34 +188,34 @@ $s = Add-TitleOnlySlide 'Solution Architecture'
 $y0 = 120
 
 # Presentation layer
-$r = Add-Rect $s 40 $y0 880 50 $tintBlue 0xFAC8C8 5
+$r = Add-Rect $s 40 $y0 880 50 $tintBlue 0xE8D8C8 5
 Add-ShapeText $r "PRESENTATION`rNext.js frontend on Cloud Run - Firebase Auth - dashboard - upload - real-time progress - report viewer" 11 $false $brandDark 'left' 'middle'
 $r.TextFrame.MarginLeft = 14
 
 # Orchestration layer
 $y0 += 60
-$r = Add-Rect $s 40 $y0 880 50 $tintBlue 0xFAC8C8 5
+$r = Add-Rect $s 40 $y0 880 50 $tintBlue 0xE8D8C8 5
 Add-ShapeText $r "ORCHESTRATION`rFastAPI orchestrator on Cloud Run - SSE streaming - fans out parallel agent calls - persists state to Firestore" 11 $false $brandDark 'left' 'middle'
 $r.TextFrame.MarginLeft = 14
 
 # Agents layer
 $y0 += 60
-$r = Add-Rect $s 40 $y0 880 100 $tintGreen 0xC8E5BD 5
+$r = Add-Rect $s 40 $y0 880 100 $tintGreen 0x6FB8DA 5
 Add-ShapeText $r 'AGENTS (GEMINI 2.5-FLASH)' 11 $true $brandGreen 'left' 'top'
 $r.TextFrame.MarginLeft = 14; $r.TextFrame.MarginTop = 8
 $ax = 60
 foreach ($a in @('Parser','Legal Rules','Fraud Detection','Report')) {
-    $b = Add-Rect $s $ax ($y0 + 32) 200 56 0xFFFFFF 0xC8E5BD 5
+    $b = Add-Rect $s $ax ($y0 + 32) 200 56 0xFFFFFF 0x6FB8DA 5
     Add-ShapeText $b "$a`rGemini 2.5-flash" 12 $true $brandDark 'center' 'middle'
     $ax += 210
 }
 
 # Data + cross-cutting
 $y0 += 110
-$r = Add-Rect $s 40 $y0 420 50 $tintCyan 0x8BDDFA 5
+$r = Add-Rect $s 40 $y0 420 50 $tintCyan 0xD4C8B8 5
 Add-ShapeText $r "DATA`rGCS (PDFs, signed URLs) - Firestore (findings, audit log)" 11 $false $brandDark 'left' 'middle'
 $r.TextFrame.MarginLeft = 14
-$r = Add-Rect $s 500 $y0 420 50 $tintViolet 0xBDC7FA 5
+$r = Add-Rect $s 500 $y0 420 50 $tintViolet 0xDED5C8 5
 Add-ShapeText $r "CROSS-CUTTING`rCloud Logging - Monitoring - IAM - Secret Manager - Artifact Registry" 11 $false $brandDark 'left' 'middle'
 $r.TextFrame.MarginLeft = 14
 
@@ -242,11 +243,11 @@ $row1Y = 120
 $bw = 140; $bh = 56; $gap = 25
 $xs = @(40, (40+$bw+$gap), (40+($bw+$gap)*2), (40+($bw+$gap)*3), (40+($bw+$gap)*4))
 $nodes = @(
-    @{label='User';        sub='';                        fill=$tintBlue; line=0xFAC8C8; color=$brandPrimary},
-    @{label='Next.js';     sub='Frontend / Cloud Run';    fill=$tintBlue; line=0xFAC8C8; color=$brandPrimary},
-    @{label='Orchestrator';sub='FastAPI / Cloud Run';     fill=$tintBlue; line=0xFAC8C8; color=$brandDark},
-    @{label='GCS';         sub='PDFs (signed URL)';       fill=$tintCyan; line=0x8BDDFA; color=$brandDark},
-    @{label='Firestore';   sub='Findings + audit';        fill=$tintCyan; line=0x8BDDFA; color=$brandDark}
+    @{label='User';        sub='';                        fill=$tintBlue; line=0xE8D8C8; color=$brandPrimary},
+    @{label='Next.js';     sub='Frontend / Cloud Run';    fill=$tintBlue; line=0xE8D8C8; color=$brandPrimary},
+    @{label='Orchestrator';sub='FastAPI / Cloud Run';     fill=$tintBlue; line=0xE8D8C8; color=$brandDark},
+    @{label='GCS';         sub='PDFs (signed URL)';       fill=$tintCyan; line=0xD4C8B8; color=$brandDark},
+    @{label='Firestore';   sub='Findings + audit';        fill=$tintCyan; line=0xD4C8B8; color=$brandDark}
 )
 for ($k = 0; $k -lt 5; $k++) {
     $n = $nodes[$k]
@@ -265,19 +266,19 @@ $awidth = 180; $aheight = 56; $agap = 20
 $agentStart = (960 - ($awidth*4 + $agap*3)) / 2
 $ax = $agentStart
 foreach ($a in @('Parser','Legal','Fraud','Report')) {
-    $b = Add-Rect $s $ax $row2Y $awidth $aheight $tintGreen 0xC8E5BD 5
+    $b = Add-Rect $s $ax $row2Y $awidth $aheight $tintGreen 0x6FB8DA 5
     Add-ShapeText $b "$a Agent`rGemini 2.5-flash" 11 $true $brandDark 'center' 'middle'
     $ax += $awidth + $agap
 }
 
 $consY = $row2Y + $aheight + 25
 Add-Arrow $s 480 ($row2Y + $aheight) 480 $consY $slate | Out-Null
-$b = Add-Rect $s 280 $consY 400 50 $tintViolet 0xBDC7FA 5
+$b = Add-Rect $s 280 $consY 400 50 $tintViolet 0xDED5C8 5
 Add-ShapeText $b "Consolidation + Severity Grading`rdedupe - combine related - grade low/medium/high/critical" 11 $true $brandDark 'center' 'middle'
 
 $repY = $consY + 60
 Add-Arrow $s 480 ($consY + 50) 480 $repY $slate | Out-Null
-$b = Add-Rect $s 280 $repY 400 46 $tintBlue 0xFAC8C8 5
+$b = Add-Rect $s 280 $repY 400 46 $tintBlue 0xE8D8C8 5
 Add-ShapeText $b "Final Report streamed to Frontend (SSE)`rproperty facts - findings - checklist - parties" 11 $true $brandPrimary 'center' 'middle'
 
 # ============================================================================
@@ -379,6 +380,28 @@ $thanks = $pres.Slides.Add($idx, $LAY_TITLE_SLIDE)
 Set-Title    $thanks 'Thank You'
 Set-Subtitle $thanks 'Landshield - verify your land. Before you sign.'
 
+# --- Apply a built-in Office theme for a polished, professional look --------
+# Tries a short list of clean themes; first one found on this machine wins.
+$themeApplied = $null
+$themeRoots = @(
+    "$env:ProgramFiles\Microsoft Office\root\Document Themes 16",
+    "${env:ProgramFiles(x86)}\Microsoft Office\root\Document Themes 16",
+    "$env:ProgramFiles\Microsoft Office\Document Themes 16",
+    "$env:ProgramFiles\Microsoft Office\root\Document Themes 15",
+    "${env:ProgramFiles(x86)}\Microsoft Office\root\Document Themes 15"
+)
+$themeCandidates = @('Gallery.thmx','Ion.thmx','Frame.thmx','Berlin.thmx','Facet.thmx','Wisp.thmx','Office Theme.thmx')
+foreach ($root in $themeRoots) {
+    if (-not (Test-Path $root)) { continue }
+    foreach ($name in $themeCandidates) {
+        $p = Join-Path $root $name
+        if (Test-Path $p) {
+            try { $pres.ApplyTheme($p); $themeApplied = $name; break } catch {}
+        }
+    }
+    if ($themeApplied) { break }
+}
+
 # --- Save -------------------------------------------------------------------
 if (Test-Path $OutputPath) { Remove-Item $OutputPath -Force }
 $pres.SaveAs($OutputPath, 24)  # ppSaveAsOpenXMLPresentation
@@ -389,6 +412,9 @@ try { $ppt.Quit() } catch {}
 
 Write-Host ""
 Write-Host "Deck saved: $OutputPath"
+if ($themeApplied) { Write-Host "Theme applied: $themeApplied" }
+else { Write-Host "No built-in theme found on this machine - open Design tab in PowerPoint to pick one." }
 Write-Host "Slides: 12 - 16:9 - uses Title + Content placeholders (theme-friendly)"
 Write-Host "Open in PowerPoint, then Design tab -> pick any theme to restyle instantly."
+
 
