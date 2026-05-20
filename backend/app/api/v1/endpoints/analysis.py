@@ -122,8 +122,8 @@ async def stream_analysis_progress(
         # Send initial connected message
         yield generate_sse_event("connected", {"document_id": document_id}, "Connected to analysis stream.", 0)
 
-        # Hard cap on stream lifetime (defensive: prevents runaway memory if analysis hangs).
-        STREAM_TIMEOUT_S = 600   # 10 minutes
+        # Hard cap on stream lifetime; must stay under Cloud Run --timeout (currently 300s).
+        STREAM_TIMEOUT_S = 280
         HEARTBEAT_EVERY_S = 25   # keep proxies / client connections warm
         start = datetime.now(timezone.utc)
         last_heartbeat = start

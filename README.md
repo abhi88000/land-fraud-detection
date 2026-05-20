@@ -10,6 +10,18 @@ Buying land is one of the riskiest things a common person can do in India. Most 
 
 ---
 
+## ⚡ Evaluator quick-start
+
+1. Open the live URL above on desktop or mobile.
+2. Sign up with any email (or sign in with Google) — no approval required.
+3. From the dashboard, click **Upload** and pick a sample PDF from [`docs/samples/`](docs/samples/) — `docs/samples/fraudulent/karnataka/01-agricultural-land-conversion-fraud.pdf` is a good first run.
+4. Watch the live SSE stream: parser → legal → fraud → report. Typical run: 30–90 s.
+5. Open the resulting report. The **Findings** tab is sorted by severity; Critical issues are highlighted in red.
+
+Want to try a clean (legitimate) document for contrast? Pick anything under [`docs/samples/legitimate/`](docs/samples/legitimate/).
+
+---
+
 ## 🎯 What It Does
 
 1. **Upload** any land document (PDF or image, Hindi/English/regional languages)

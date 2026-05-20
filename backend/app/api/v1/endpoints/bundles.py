@@ -222,7 +222,7 @@ async def stream_bundle_progress(bundle_id: str, current_user: User = Depends(ge
         last_ts = None
         yield generate_sse_event("connected", {"bundle_id": bundle_id}, "Connected to bundle stream.", 0)
 
-        STREAM_TIMEOUT_S = 600   # 10 minutes
+        STREAM_TIMEOUT_S = 280   # must stay under Cloud Run --timeout (300s)
         HEARTBEAT_EVERY_S = 25
         start = datetime.now(timezone.utc)
         last_heartbeat = start
