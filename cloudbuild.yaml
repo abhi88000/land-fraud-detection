@@ -51,7 +51,7 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
       - '--set-env-vars'
-      - 'GCP_PROJECT_ID=${PROJECT_ID},GCP_LOCATION=${_REGION},GCS_BUCKET_NAME=land-guard-docs-${PROJECT_ID},FIREBASE_PROJECT_ID=${PROJECT_ID},ALLOW_GUEST_AUTH=false,CORS_ORIGINS=${_FRONTEND_URL}'
+      - 'GCP_PROJECT_ID=${PROJECT_ID},GCP_LOCATION=${_REGION},GCS_BUCKET_NAME=land-guard-docs-${PROJECT_ID},FIREBASE_PROJECT_ID=${PROJECT_ID},ALLOW_GUEST_AUTH=false,CORS_ORIGINS=${_FRONTEND_URL},ENABLE_DOCS=false,LOG_FORMAT=json,LOG_LEVEL=INFO,WEB_CONCURRENCY=2'
       - '--port'
       - '8000'
       - '--service-account'

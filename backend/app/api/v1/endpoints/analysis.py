@@ -10,6 +10,7 @@ from app.core.models import User
 from app.models.document import DocumentStatus, Document
 from app.models.analysis import AnalysisReport
 from app.services import firestore
+from app.services.cache import check_rate_limit
 from app.utils.sse import generate_sse_event
 from app.api.v1.schemas.analysis import AnalysisReportResponse, AnalysisProgressEvent
 from app.agents.orchestrator import OrchestratorAgent
@@ -34,6 +35,13 @@ async def start_analysis(
     Triggers analysis on one or more documents.
     All documents are analyzed together as a bundle (same property context).
     """
+    # Per-user analyze throttle (Redis-backed; no-op when Redis is disabled).
+    if not await check_rate_limit(current_user.uid, action="analyze", max_requests=30, window_seconds=3600):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Analysis rate limit exceeded. Try again later.",
+        )
+
     if not request.document_ids:
         raise HTTPException(status_code=400, detail="No document IDs provided.")
     if len(request.document_ids) > 10:
@@ -114,7 +122,23 @@ async def stream_analysis_progress(
         # Send initial connected message
         yield generate_sse_event("connected", {"document_id": document_id}, "Connected to analysis stream.", 0)
 
+        # Hard cap on stream lifetime (defensive: prevents runaway memory if analysis hangs).
+        STREAM_TIMEOUT_S = 600   # 10 minutes
+        HEARTBEAT_EVERY_S = 25   # keep proxies / client connections warm
+        start = datetime.now(timezone.utc)
+        last_heartbeat = start
+
         while True:
+            now = datetime.now(timezone.utc)
+            if (now - start).total_seconds() > STREAM_TIMEOUT_S:
+                yield generate_sse_event(
+                    "stream_timeout",
+                    {"document_id": document_id},
+                    "Stream timed out. Please refresh.",
+                    100,
+                )
+                break
+
             # Fetch events from Firestore subcollection
             events = await firestore.get_document_events_since(document_id, last_event_timestamp)
             
@@ -163,6 +187,11 @@ async def stream_analysis_progress(
                         ).model_dump()
                         yield generate_sse_event(event_payload["event_type"], event_payload["data"], event_payload["message"], event_payload["progress"])
                     break # Exit loop as analysis is complete/failed
+
+            # Heartbeat to keep the connection alive if no events arrived.
+            if (now - last_heartbeat).total_seconds() >= HEARTBEAT_EVERY_S:
+                yield ": ping\n\n"   # SSE comment line; ignored by clients but keeps socket open
+                last_heartbeat = now
 
             await asyncio.sleep(1) # Poll every 1 second for new events
 

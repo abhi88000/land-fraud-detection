@@ -5,6 +5,7 @@ from app.core.models import User
 from app.models.document import Document, DocumentStatus
 from app.api.v1.schemas.documents import DocumentUploadResponse, DocumentListResponse, DocumentDetailResponse
 from app.services import gcs, firestore
+from app.services.cache import check_rate_limit
 from app.agents.orchestrator import OrchestratorAgent
 from app.core.errors import InvalidFileFormatException, DocumentNotFoundException, UnauthorizedDocumentAccess
 import asyncio
@@ -27,6 +28,13 @@ async def upload_document(
     Uploads a land document. Does NOT auto-trigger analysis.
     User must explicitly trigger analysis via /analysis/analyze endpoint.
     """
+    # Per-user upload throttle (Redis-backed; no-op when Redis is disabled).
+    if not await check_rate_limit(current_user.uid, action="upload", max_requests=60, window_seconds=3600):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Upload rate limit exceeded. Try again later.",
+        )
+
     allowed_content_types = ["application/pdf", "image/jpeg", "image/png", "image/tiff"]
     if not file.content_type or file.content_type not in allowed_content_types:
         raise InvalidFileFormatException(allowed_formats=[ct.split('/')[-1] for ct in allowed_content_types])

@@ -46,7 +46,6 @@ export default function DocumentAnalysisPage() {
 
     eventSourceRef.current.onmessage = (event: MessageEvent) => {
       const parsedData: AnalysisProgressEvent = JSON.parse(event.data);
-      console.log('SSE Message:', parsedData);
       setLiveEvents(prev => [...prev, parsedData]);
       setAnalysisProgress(parsedData.progress);
       setAnalysisMessage(parsedData.message);
@@ -81,7 +80,7 @@ export default function DocumentAnalysisPage() {
     };
 
     eventSourceRef.current.onopen = () => {
-      console.log('EventSource connected.');
+      // connected
     };
 
   }, [documentId]);

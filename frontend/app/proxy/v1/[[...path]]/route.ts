@@ -23,7 +23,10 @@ async function handleRequest(request: NextRequest, params: { path?: string[] }) 
   const searchParams = request.nextUrl.searchParams.toString();
   const url = `${BACKEND_URL}/${path}${searchParams ? `?${searchParams}` : ''}`;
 
-  console.log(`[PROXY] ${request.method} ${request.url} -> ${url}`);
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.log(`[PROXY] ${request.method} ${request.url} -> ${url}`);
+  }
 
   const headers = new Headers();
   request.headers.forEach((value, key) => {

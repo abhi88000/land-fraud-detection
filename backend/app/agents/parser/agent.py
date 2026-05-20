@@ -77,25 +77,30 @@ class DocumentParserAgent(BaseAgent[str, ExtractedData]):
             elif gcs_path.lower().endswith(".tiff"):
                 mime_type = "image/tiff"
 
-            # Call Gemini for multimodal document analysis (async)
-            response = await self.client.aio.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[
-                    types.Content(
-                        role="user",
-                        parts=[
-                            types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
-                            types.Part.from_text(text="Extract all information from this Indian land document as structured JSON."),
-                        ],
-                    )
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=PARSER_SYSTEM_PROMPT,
-                    temperature=0.1,
-                    response_mime_type="application/json",
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
-                ),
-            )
+            # Call Gemini for multimodal document analysis (async, with retry on transient errors)
+            from app.core.retry import retry_async
+
+            async def _call_gemini():
+                return await self.client.aio.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[
+                        types.Content(
+                            role="user",
+                            parts=[
+                                types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+                                types.Part.from_text(text="Extract all information from this Indian land document as structured JSON."),
+                            ],
+                        )
+                    ],
+                    config=types.GenerateContentConfig(
+                        system_instruction=PARSER_SYSTEM_PROMPT,
+                        temperature=0.1,
+                        response_mime_type="application/json",
+                        thinking_config=types.ThinkingConfig(thinking_budget=0),
+                    ),
+                )
+
+            response = await retry_async(_call_gemini, attempts=3, label="parser.gemini")
 
             # Parse response
             response_text = response.text.strip()

@@ -8,6 +8,7 @@ from app.models.document import Document, DocumentStatus
 from app.api.v1.schemas.bundles import BundleCreateResponse, BundleListResponse, BundleDetailResponse, BundleReportResponse
 from app.api.v1.schemas.analysis import AnalysisProgressEvent
 from app.services import gcs, firestore
+from app.services.cache import check_rate_limit
 from app.agents.orchestrator import OrchestratorAgent
 from app.models.analysis import AnalysisReport
 from app.utils.sse import generate_sse_event
@@ -32,6 +33,11 @@ async def create_bundle(
     current_user: User = Depends(get_current_user),
 ):
     """Create a document bundle with multiple files sharing the same location and land type."""
+    if not await check_rate_limit(current_user.uid, action="bundle_create", max_requests=30, window_seconds=3600):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Bundle creation rate limit exceeded. Try again later.",
+        )
     if not files:
         raise HTTPException(status_code=400, detail="At least one file is required.")
     if len(files) > 10:
@@ -120,6 +126,11 @@ async def get_bundle(bundle_id: str, current_user: User = Depends(get_current_us
 @router.post("/{bundle_id}/analyze")
 async def analyze_bundle(bundle_id: str, current_user: User = Depends(get_current_user)):
     """Trigger analysis for all documents in the bundle."""
+    if not await check_rate_limit(current_user.uid, action="bundle_analyze", max_requests=30, window_seconds=3600):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Analysis rate limit exceeded. Try again later.",
+        )
     bundle_data = await firestore.get_bundle_entry(bundle_id)
     if not bundle_data:
         raise HTTPException(status_code=404, detail="Bundle not found.")
@@ -211,7 +222,17 @@ async def stream_bundle_progress(bundle_id: str, current_user: User = Depends(ge
         last_ts = None
         yield generate_sse_event("connected", {"bundle_id": bundle_id}, "Connected to bundle stream.", 0)
 
+        STREAM_TIMEOUT_S = 600   # 10 minutes
+        HEARTBEAT_EVERY_S = 25
+        start = datetime.now(timezone.utc)
+        last_heartbeat = start
+
         while True:
+            now = datetime.now(timezone.utc)
+            if (now - start).total_seconds() > STREAM_TIMEOUT_S:
+                yield generate_sse_event("stream_timeout", {"bundle_id": bundle_id}, "Stream timed out. Please refresh.", 100)
+                break
+
             events = await firestore.get_bundle_events_since(bundle_id, last_ts)
             for ev in events:
                 payload = AnalysisProgressEvent(
@@ -247,6 +268,10 @@ async def stream_bundle_progress(bundle_id: str, current_user: User = Depends(ge
                         ).model_dump()
                     yield generate_sse_event(payload["event_type"], payload["data"], payload["message"], payload["progress"])
                     break
+
+            if (now - last_heartbeat).total_seconds() >= HEARTBEAT_EVERY_S:
+                yield ": ping\n\n"
+                last_heartbeat = now
 
             await asyncio.sleep(1)
 

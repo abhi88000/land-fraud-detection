@@ -78,23 +78,28 @@ class LegalRulesAgent(BaseAgent[ExtractedData, List[LegalFinding]]):
                 f"Suggest specific documents the user needs to obtain for {state}."
             )
 
-            response = await self.client.aio.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[
-                    types.Content(
-                        role="user",
-                        parts=[
-                            types.Part.from_text(text=prompt_text),
-                        ],
-                    )
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=LEGAL_SYSTEM_PROMPT,
-                    temperature=0.2,
-                    response_mime_type="application/json",
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
-                ),
-            )
+            from app.core.retry import retry_async
+
+            async def _call_gemini():
+                return await self.client.aio.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[
+                        types.Content(
+                            role="user",
+                            parts=[
+                                types.Part.from_text(text=prompt_text),
+                            ],
+                        )
+                    ],
+                    config=types.GenerateContentConfig(
+                        system_instruction=LEGAL_SYSTEM_PROMPT,
+                        temperature=0.2,
+                        response_mime_type="application/json",
+                        thinking_config=types.ThinkingConfig(thinking_budget=0),
+                    ),
+                )
+
+            response = await retry_async(_call_gemini, attempts=3, label="legal.gemini")
 
             response_text = response.text.strip()
             parsed_findings = json.loads(response_text)

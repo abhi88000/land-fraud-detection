@@ -82,21 +82,26 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
                 f"IMPORTANT: Frame all findings as advisory, not accusations. Return ONLY the JSON array as specified in system instructions."
             )
 
-            response = await self.client.aio.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[
-                    types.Content(
-                        role="user",
-                        parts=[types.Part.from_text(text=prompt_text)],
-                    )
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=FRAUD_SYSTEM_PROMPT,
-                    temperature=0.2,
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
-                    tools=[types.Tool(google_search=types.GoogleSearch())],
-                ),
-            )
+            from app.core.retry import retry_async
+
+            async def _call_gemini():
+                return await self.client.aio.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[
+                        types.Content(
+                            role="user",
+                            parts=[types.Part.from_text(text=prompt_text)],
+                        )
+                    ],
+                    config=types.GenerateContentConfig(
+                        system_instruction=FRAUD_SYSTEM_PROMPT,
+                        temperature=0.2,
+                        thinking_config=types.ThinkingConfig(thinking_budget=0),
+                        tools=[types.Tool(google_search=types.GoogleSearch())],
+                    ),
+                )
+
+            response = await retry_async(_call_gemini, attempts=3, label="fraud.gemini")
 
             response_text = response.text.strip()
             # Extract JSON from response (may be wrapped in ```json ... ```)

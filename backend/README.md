@@ -167,6 +167,21 @@ ADK_AGENT_SERVICE_ACCOUNT="your-adk-agent-service-account-email"
 # PORT=8000
 ```
 
+**Production-only env vars** (set on Cloud Run, not in local `.env`):
+
+| Variable          | Value                | Purpose                                                          |
+|-------------------|----------------------|------------------------------------------------------------------|
+| `ENABLE_DOCS`     | `false`              | Disables `/docs`, `/redoc`, `/openapi.json` in production.       |
+| `LOG_FORMAT`      | `json`               | Emits structured JSON logs for Cloud Logging.                    |
+| `LOG_LEVEL`       | `INFO`               | Root log level.                                                  |
+| `WEB_CONCURRENCY` | `2`                  | Gunicorn worker count per Cloud Run instance.                    |
+| `CORS_ORIGINS`    | `https://<web-url>`  | Comma-separated allowed origins.                                 |
+| `REDIS_ENABLED`   | `true`               | Enables Memorystore-backed rate limiting + cache.                |
+| `PUBSUB_ENABLED`  | `true`               | Enables async job dispatch via Pub/Sub.                          |
+| `BIGQUERY_ENABLED`| `true`               | Enables analytics export.                                        |
+
+The Cloud Run service injects `PORT` automatically; do not override it.
+
 **Authentication for Local Development:**
 When running locally, your application will use your `gcloud` authenticated user's credentials by default (`gcloud auth application-default login`). Ensure this user has the necessary permissions (same as the Application Service Account mentioned above).
 
