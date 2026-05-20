@@ -160,25 +160,26 @@ Set-Subtitle $cover "AI-powered due diligence for Indian land documents`rInfosys
 # SLIDE 2 - Team & Use Case (Title + Body)
 # ============================================================================
 Add-ContentSlide -Title 'Team & Use Case' -Bullets @(
-    'Team: Landshield - Member: Abhishek Partap S - DU: AI Altitude',
-    'Use case: AI-powered land document verification for Indian buyers',
-    'Domain: Real Estate / Legal Tech - Sub-domain: Document verification, fraud detection, due-diligence assistance',
-    'What it does: Ingests a bundle of land documents (sale deed, EC, mutation, tax receipt, building plan), extracts structured data, validates against Indian land law (TPA, Roshni Act, tribal-land rules, RERA), flags fraud indicators, and produces a lawyer-style report graded by severity',
-    'Outcome: Buyer gets a clear go / clarify / stop verdict in seconds instead of weeks of manual due diligence'
+    'Team Landshield - Abhishek Partap S - DU: AI Altitude',
+    'Domain: Real Estate and Legal Tech - verifying land documents for Indian buyers',
+    'Problem: buying land in India needs 8 to 10 documents - one wrong paper and the buyer loses everything',
+    'Solution: an AI assistant that reads the full bundle - sale deed, EC, mutation, tax receipt, building plan',
+    'It checks the documents against Indian land law and flags fraud signs in plain language',
+    'Outcome: the buyer gets a clear Go, Clarify or Stop answer in under a minute, not weeks'
 ) | Out-Null
 
 # ============================================================================
 # SLIDE 3 - Solution Design (Title + Body)
 # ============================================================================
 Add-ContentSlide -Title 'Solution Design' -Bullets @(
-    'Orchestrator (FastAPI on Cloud Run): receives the bundle, fans out parallel agent calls, streams progress via SSE, persists to Firestore',
-    'Parser Agent (Gemini): reads PDFs natively, extracts parties, area, stamp duty, registration details, chain of title, dates',
-    'Legal Rules Agent (Gemini): maps extracted data against Indian land law - registration, stamp duty, state restrictions, RERA',
-    'Fraud Detection Agent (Gemini): flags name mismatches, chain-of-title gaps, undervaluation, fake registration patterns',
-    'Report Agent (Gemini): consolidates findings into a lawyer-style summary with severity grading and recommendations',
-    'Storage: GCS for source PDFs (signed URLs), Firestore for analysis state and audit log',
-    'Frontend (Next.js on Cloud Run): dashboard, upload, real-time progress, report viewer - Firebase Auth gates access',
-    'Observability: Cloud Logging + Monitoring - structured logs, agent latency, model cost, alerts'
+    'Orchestrator: a backend that takes the documents and runs the four AI agents in order',
+    'Parser Agent: reads each PDF and pulls out names, area, dates, stamp duty and registration details',
+    'Legal Agent: checks if the documents follow Indian land law and flags any non-compliance',
+    'Fraud Agent: looks for red flags like name mismatches, broken ownership chains and undervaluation',
+    'Report Agent: combines all findings into a short summary with a severity grade and next steps',
+    'Frontend: a simple web app that shows live progress and the final report, secured by Firebase login',
+    'Storage: documents in Cloud Storage, results and audit trail in Firestore',
+    'Everything is monitored: logs, latency and errors are tracked in Google Cloud Monitoring'
 ) | Out-Null
 
 # ============================================================================
@@ -189,13 +190,13 @@ $y0 = 120
 
 # Presentation layer
 $r = Add-Rect $s 40 $y0 880 50 $tintBlue 0xE8D8C8 5
-Add-ShapeText $r "PRESENTATION`rNext.js frontend on Cloud Run - Firebase Auth - dashboard - upload - real-time progress - report viewer" 11 $false $brandDark 'left' 'middle'
+Add-ShapeText $r "PRESENTATION`rNext.js web app on Cloud Run - login, upload, live progress, final report" 11 $false $brandDark 'left' 'middle'
 $r.TextFrame.MarginLeft = 14
 
 # Orchestration layer
 $y0 += 60
 $r = Add-Rect $s 40 $y0 880 50 $tintBlue 0xE8D8C8 5
-Add-ShapeText $r "ORCHESTRATION`rFastAPI orchestrator on Cloud Run - SSE streaming - fans out parallel agent calls - persists state to Firestore" 11 $false $brandDark 'left' 'middle'
+Add-ShapeText $r "ORCHESTRATION`rFastAPI backend on Cloud Run - runs the agents, streams progress, saves results" 11 $false $brandDark 'left' 'middle'
 $r.TextFrame.MarginLeft = 14
 
 # Agents layer
@@ -213,25 +214,24 @@ foreach ($a in @('Parser','Legal Rules','Fraud Detection','Report')) {
 # Data + cross-cutting
 $y0 += 110
 $r = Add-Rect $s 40 $y0 420 50 $tintCyan 0xD4C8B8 5
-Add-ShapeText $r "DATA`rGCS (PDFs, signed URLs) - Firestore (findings, audit log)" 11 $false $brandDark 'left' 'middle'
+Add-ShapeText $r "DATA`rCloud Storage for PDFs - Firestore for results and audit log" 11 $false $brandDark 'left' 'middle'
 $r.TextFrame.MarginLeft = 14
 $r = Add-Rect $s 500 $y0 420 50 $tintViolet 0xDED5C8 5
-Add-ShapeText $r "CROSS-CUTTING`rCloud Logging - Monitoring - IAM - Secret Manager - Artifact Registry" 11 $false $brandDark 'left' 'middle'
+Add-ShapeText $r "SECURITY and OPERATIONS`rLogging, Monitoring, IAM, Secret Manager, Artifact Registry" 11 $false $brandDark 'left' 'middle'
 $r.TextFrame.MarginLeft = 14
 
 # ============================================================================
 # SLIDE 5 - Data Flow (Title + Body, numbered)
 # ============================================================================
 Add-ContentSlide -Title 'Data Flow' -Bullets @(
-    'User uploads a bundle of land documents and selects state + land type',
-    'Frontend pushes files to backend; backend stores them in GCS and creates a Firestore record',
-    'Orchestrator triggers Parser Agent; Gemini reads each PDF and extracts structured fields',
-    'Legal Rules Agent and Fraud Detection Agent run in parallel on the extracted data',
-    'Findings are normalised, deduplicated, consolidated, and graded by severity',
-    'Report Agent generates a lawyer-style summary with severity counts and recommended actions',
-    'Backend persists the report to Firestore and streams progress to the frontend via SSE',
-    'User views the report: property facts, findings, checklist, parties, document inventory',
-    'Cloud Logging and Monitoring capture latency, errors, and cost throughout'
+    'User logs in, picks the state and land type, and uploads the document bundle',
+    'Files are saved to Cloud Storage and a new analysis record is created in Firestore',
+    'Parser Agent reads each PDF and extracts the key facts',
+    'Legal Agent and Fraud Agent run at the same time on those facts',
+    'Findings are deduplicated and graded as Low, Medium, High or Critical',
+    'Report Agent writes a short summary with clear next steps',
+    'Backend streams progress live; frontend shows the final report',
+    'Every step is logged and monitored in Google Cloud'
 ) | Out-Null
 
 # ============================================================================
@@ -243,11 +243,11 @@ $row1Y = 120
 $bw = 140; $bh = 56; $gap = 25
 $xs = @(40, (40+$bw+$gap), (40+($bw+$gap)*2), (40+($bw+$gap)*3), (40+($bw+$gap)*4))
 $nodes = @(
-    @{label='User';        sub='';                        fill=$tintBlue; line=0xE8D8C8; color=$brandPrimary},
-    @{label='Next.js';     sub='Frontend / Cloud Run';    fill=$tintBlue; line=0xE8D8C8; color=$brandPrimary},
-    @{label='Orchestrator';sub='FastAPI / Cloud Run';     fill=$tintBlue; line=0xE8D8C8; color=$brandDark},
-    @{label='GCS';         sub='PDFs (signed URL)';       fill=$tintCyan; line=0xD4C8B8; color=$brandDark},
-    @{label='Firestore';   sub='Findings + audit';        fill=$tintCyan; line=0xD4C8B8; color=$brandDark}
+    @{label='User';        sub='Browser';                 fill=$tintBlue; line=0xE8D8C8; color=$brandPrimary},
+    @{label='Frontend';    sub='Next.js on Cloud Run';    fill=$tintBlue; line=0xE8D8C8; color=$brandPrimary},
+    @{label='Backend';     sub='FastAPI on Cloud Run';    fill=$tintBlue; line=0xE8D8C8; color=$brandDark},
+    @{label='Documents';   sub='Cloud Storage';           fill=$tintCyan; line=0xD4C8B8; color=$brandDark},
+    @{label='Results';     sub='Firestore';               fill=$tintCyan; line=0xD4C8B8; color=$brandDark}
 )
 for ($k = 0; $k -lt 5; $k++) {
     $n = $nodes[$k]
@@ -274,25 +274,25 @@ foreach ($a in @('Parser','Legal','Fraud','Report')) {
 $consY = $row2Y + $aheight + 25
 Add-Arrow $s 480 ($row2Y + $aheight) 480 $consY $slate | Out-Null
 $b = Add-Rect $s 280 $consY 400 50 $tintViolet 0xDED5C8 5
-Add-ShapeText $b "Consolidation + Severity Grading`rdedupe - combine related - grade low/medium/high/critical" 11 $true $brandDark 'center' 'middle'
+Add-ShapeText $b "Combine and grade findings`rdeduplicate - severity: Low, Medium, High, Critical" 11 $true $brandDark 'center' 'middle'
 
 $repY = $consY + 60
 Add-Arrow $s 480 ($consY + 50) 480 $repY $slate | Out-Null
 $b = Add-Rect $s 280 $repY 400 46 $tintBlue 0xE8D8C8 5
-Add-ShapeText $b "Final Report streamed to Frontend (SSE)`rproperty facts - findings - checklist - parties" 11 $true $brandPrimary 'center' 'middle'
+Add-ShapeText $b "Final report streamed live to the user`rproperty facts - findings - checklist - parties" 11 $true $brandPrimary 'center' 'middle'
 
 # ============================================================================
 # SLIDE 7 - Agent Design (Title + Body)
 # ============================================================================
 Add-ContentSlide -Title 'Agent Design' -Bullets @(
-    'Orchestrator (controller): primary entry point - validates the bundle and coordinates the rest',
-    'Fan-out: Parser first, then Legal + Fraud in parallel, then Report - progress streamed via SSE',
-    'Each specialised Gemini agent has its own focused system prompt and JSON output schema',
-    'Parser is multimodal (reads PDFs natively); the rest consume structured JSON',
-    'Stateless agents exchange JSON, allowing easy retry and parallelism',
-    'In-process Python calls today (sub-second latency, lower cost)',
-    'Designed so any agent can be promoted to its own Cloud Run service via HTTP/JSON',
-    'A shared ExtractedData schema keeps contracts stable across agents'
+    'One orchestrator coordinates everything - each agent has only one job',
+    'Parser runs first; Legal and Fraud run in parallel; Report runs last',
+    'Every agent uses Gemini 2.5 Flash with its own focused prompt',
+    'Agents talk to each other through a shared JSON schema',
+    'Parser reads the PDFs directly - no separate OCR step needed',
+    'Stateless design means any single agent can be retried without redoing the rest',
+    'Today they run together for speed and lower cost',
+    'Any one of them can later be split into its own Cloud Run service if we need to scale it'
 ) | Out-Null
 
 # ============================================================================
@@ -313,11 +313,11 @@ for ($c = 1; $c -le 3; $c++) {
 }
 
 $rows = @(
-    @('Orchestrator',          'Receives the bundle, fans out parallel agent calls, streams progress, persists state.',                              'FastAPI / Cloud Run + Firestore'),
-    @('Parser Agent',          'Reads PDFs natively. Extracts parties, area, stamp duty, registration details, chain of title.',                      'Vertex AI Gemini 2.5-flash'),
-    @('Legal Rules Agent',     'Maps extracted data against Indian land law. Flags only concrete document-specific issues.',                          'Vertex AI Gemini 2.5-flash'),
-    @('Fraud Detection Agent', 'Detects name mismatches, chain-of-title gaps, undervaluation. Consolidates related observations.',                    'Vertex AI Gemini 2.5-flash'),
-    @('Report Agent',          'Synthesises findings into a lawyer-style summary, grades severity, and recommends next steps.',                       'Vertex AI Gemini 2.5-flash')
+    @('Orchestrator',          'Takes the bundle, runs the agents, streams progress, saves results.',                                                'FastAPI on Cloud Run + Firestore'),
+    @('Parser Agent',          'Reads each PDF and pulls out parties, area, stamp duty, dates and registration details.',                             'Vertex AI Gemini 2.5-flash'),
+    @('Legal Rules Agent',     'Checks the documents against Indian land law and flags any non-compliance.',                                          'Vertex AI Gemini 2.5-flash'),
+    @('Fraud Detection Agent', 'Looks for red flags: name mismatches, broken ownership chain, missing signatures, undervaluation.',                   'Vertex AI Gemini 2.5-flash'),
+    @('Report Agent',          'Combines all findings into a short summary, grades severity, suggests next steps.',                                   'Vertex AI Gemini 2.5-flash')
 )
 for ($r = 0; $r -lt $rows.Count; $r++) {
     for ($c = 0; $c -lt 3; $c++) {
@@ -330,46 +330,45 @@ for ($r = 0; $r -lt $rows.Count; $r++) {
 # SLIDE 9 - Deployment (Title + Body)
 # ============================================================================
 Add-ContentSlide -Title 'Deployment' -Bullets @(
-    'Frontend (Next.js): Dockerised, deployed to Cloud Run, CDN-cached static assets',
-    'Backend (FastAPI): Dockerised, deployed to Cloud Run, auto-scales 0 -> N, Gunicorn + Uvicorn workers',
-    'CI/CD: GitHub push -> Cloud Build -> builds both images -> Artifact Registry -> deploys to Cloud Run',
-    'Artifact Registry: stores backend + frontend Docker images, vulnerability scanning enabled',
-    'Secret Manager: holds Gemini API keys and Firebase admin credentials; Cloud Run reads at startup',
-    'Cloud Storage: bucket for uploaded documents, signed URLs with short TTL, lifecycle expiry',
-    'Firestore: native-mode database, stores analysis records, findings, audit log',
-    'IAM: dedicated service account per Cloud Run service, least-privilege on Firestore / GCS / Secret Manager',
-    'Logging & Monitoring: structured JSON logs, alerts on error rate and Gemini latency',
-    'Firebase Auth: email/password and Google sign-in, ID tokens verified server-side per request'
+    'Frontend and backend both run on Cloud Run as Docker containers',
+    'Push to GitHub triggers Cloud Build to build the images and deploy automatically',
+    'Docker images are stored in Artifact Registry with vulnerability scanning on',
+    'Secrets (API keys, Firebase credentials) live in Secret Manager and are loaded at startup',
+    'Uploaded documents go to Cloud Storage with short-lived signed URLs',
+    'Analysis results and the audit log are stored in Firestore',
+    'Cloud Run auto-scales from zero, so we only pay for what we use',
+    'Each service has its own least-privilege IAM service account',
+    'Logs and metrics are centralised in Cloud Logging and Monitoring with alerts',
+    'Every request is protected by Firebase Authentication'
 ) | Out-Null
 
 # ============================================================================
 # SLIDE 10 - Google Technology Stack (Title + Body)
 # ============================================================================
 Add-ContentSlide -Title 'Google Technology Stack' -Bullets @(
-    'Vertex AI Gemini 2.5 - multimodal reasoning for parsing, legal analysis, fraud detection, report synthesis',
-    'Cloud Run - serverless container hosting for FastAPI backend and Next.js frontend; auto-scales per request',
-    'Cloud Storage - signed-URL storage for uploaded land documents',
-    'Firestore - document database for analysis state, bundles, findings, audit trail',
-    'Firebase Authentication - email/password and Google sign-in with secure tokens to the backend',
-    'Cloud Build - GitHub push triggers Docker build, image push, Cloud Run deploy',
-    'Artifact Registry - container image storage for backend and frontend',
-    'Secret Manager - Gemini API keys and Firebase admin credentials at rest',
-    'Cloud Logging & Monitoring - centralised structured logs, latency metrics, error alerting',
-    'IAM - least-privilege service accounts for Cloud Run, Firestore, and GCS'
+    'Vertex AI Gemini 2.5 - the AI brain that powers every agent',
+    'Cloud Run - serverless hosting for the backend and the frontend',
+    'Cloud Storage - keeps the uploaded land documents',
+    'Firestore - stores analysis results and audit history',
+    'Firebase Authentication - secure login for every user',
+    'Cloud Build - automatic build and deploy on every git push',
+    'Artifact Registry - stores our Docker images',
+    'Secret Manager - keeps API keys and credentials safe',
+    'Cloud Logging and Monitoring - shows how the app is performing',
+    'IAM - controls what each service is allowed to do'
 ) | Out-Null
 
 # ============================================================================
 # SLIDE 11 - How did we arrive at this solution? (Title + Body)
 # ============================================================================
 Add-ContentSlide -Title 'How did we arrive at this solution?' -Bullets @(
-    'Problem observed: Indian land transactions involve 8-10 documents per deal; buyers cannot verify them alone',
-    'Lawyers are expensive and slow; fraud patterns (Roshni Act, tribal land, benami) are hard to spot manually',
-    'Why an AI agent: Gemini 2.5 reads multi-page PDFs natively and extracts structured fields with high accuracy',
-    'A multi-agent layout runs parser, legal, fraud, and report agents in parallel with focused prompts',
-    'Findings are consolidated and graded, so the user gets a lawyer-style summary, not raw text',
-    'Why Google Cloud: Vertex AI Gemini gives best-in-class multimodal reasoning without managing models ourselves',
-    'Cloud Run + Firestore scales from one document to thousands without infra work',
-    'Firebase Auth + IAM gives a clean security boundary for sensitive land data'
+    'Land deals in India use 8 to 10 documents - most buyers cannot verify them on their own',
+    'Lawyers help, but are slow and expensive - and fraud patterns are hard to spot manually',
+    'Gemini can read multi-page PDFs directly, which removes the need for any separate OCR step',
+    'Splitting the job across small focused agents gave us better accuracy than one giant prompt',
+    'Running the agents in parallel keeps the user experience fast',
+    'Google Cloud gives us everything in one place - AI, hosting, storage, login and security',
+    'End result: a non-expert buyer gets a clear answer in under a minute, not weeks'
 ) | Out-Null
 
 # ============================================================================
