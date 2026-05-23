@@ -2,6 +2,11 @@
 
 > **Built for the Google Gemini CLI Buildathon** | Team: Trust Trailblazers
 
+**Use Case:** Land document fraud detection and verification
+**Domain:** Real Estate / Legal Tech
+**Subdomain:** Document Verification
+**Use case description:** Gen AI Agent to Read and Verify the land documents are compliant with Secure Land-Law Guidelines. The Guidelines can be configured as JSON file. The agents will parse the documents listed in the bundle to verify any known fraud patterns or statutory violations exist in public land records and case law available on the internet.
+
 Buying land is one of the riskiest things a common person can do in India. Most people can't read or understand government land documents, don't know what papers to check, and fraudsters exploit this — selling land they don't own, forging documents, selling the same plot to multiple buyers, or selling restricted land that legally cannot be resold.
 
 **LandGuard fixes this.** Upload your land papers — sale deed, property extract, encumbrance certificate — and AI reads everything, explains it in simple language, and flags what looks wrong: mismatched names, missing signatures, broken ownership history, missing documents. It knows real fraud cases from news and courts, and official land rules for your state and district.
