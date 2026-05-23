@@ -1,6 +1,7 @@
 from google.cloud.firestore_v1 import AsyncClient
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud.firestore_v1 import query as firestore_query
+from google.api_core.exceptions import NotFound
 from app.core.config import settings
 from app.core.errors import LandGuardException, DocumentNotFoundException
 from app.models.document import DocumentStatus, Document
@@ -192,9 +193,11 @@ class FirestoreService:
                 "updated_at": datetime.utcnow().isoformat() + "Z"
             }
             await self.documents_collection.document(document_id).update(updates)
+        except NotFound:
+            # Document was deleted (e.g., user cancelled/deleted mid-analysis). Treat as benign.
+            logger.info(f"Skipping progress update for deleted document {document_id}")
         except Exception as e:
             logger.error(f"Failed to update document {document_id} progress: {e}")
-            raise LandGuardException(f"Failed to update document progress: {e}")
 
     async def list_documents_for_user(self, user_id: str, page: int = 1, page_size: int = 10, status: Optional[DocumentStatus] = None) -> Tuple[List[Dict[str, Any]], int]:
         if self.is_mock:
@@ -280,16 +283,41 @@ class FirestoreService:
             self.mock.events.pop(document_id, None)
             return
         try:
-            # Delete events subcollection
+            # Batch-delete events subcollection (up to a hard cap to keep the request snappy)
             events_ref = self.documents_collection.document(document_id).collection("events")
-            async for doc in events_ref.stream():
-                await doc.reference.delete()
-            # Delete document entry
-            await self.documents_collection.document(document_id).delete()
-            # Delete analysis report if exists
-            await self.reports_collection.document(document_id).delete()
+            await self._purge_subcollection(events_ref, max_docs=2000)
+            # Delete document entry and any analysis report. Ignore NotFound (already gone).
+            try:
+                await self.documents_collection.document(document_id).delete()
+            except NotFound:
+                pass
+            try:
+                await self.reports_collection.document(document_id).delete()
+            except NotFound:
+                pass
         except Exception as e:
             logger.error(f"Failed to delete document {document_id}: {e}")
+
+    async def _purge_subcollection(self, coll_ref, max_docs: int = 2000, batch_size: int = 400):
+        """Delete every document in a subcollection in chunked batches. Best-effort."""
+        deleted = 0
+        while deleted < max_docs:
+            batch = self.db.batch()
+            count = 0
+            # `limit` keeps each pass bounded; we re-query each iteration so newly
+            # added events (from a still-running agent) get cleaned up too.
+            async for doc in coll_ref.limit(batch_size).stream():
+                batch.delete(doc.reference)
+                count += 1
+            if count == 0:
+                return
+            try:
+                await batch.commit()
+            except NotFound:
+                return
+            deleted += count
+            if count < batch_size:
+                return
 
     # --- Bundle methods ---
 
@@ -346,12 +374,16 @@ class FirestoreService:
         if self.is_mock:
             return await self.mock.delete_bundle_entry(bundle_id)
         try:
-            # Delete bundle events
             events_ref = self.bundles_collection.document(bundle_id).collection("events")
-            async for doc in events_ref.stream():
-                await doc.reference.delete()
-            await self.bundles_collection.document(bundle_id).delete()
-            await self.bundle_reports_collection.document(bundle_id).delete()
+            await self._purge_subcollection(events_ref, max_docs=2000)
+            try:
+                await self.bundles_collection.document(bundle_id).delete()
+            except NotFound:
+                pass
+            try:
+                await self.bundle_reports_collection.document(bundle_id).delete()
+            except NotFound:
+                pass
         except Exception as e:
             logger.error(f"Failed to delete bundle {bundle_id}: {e}")
 

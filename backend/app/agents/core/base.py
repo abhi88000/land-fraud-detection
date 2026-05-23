@@ -36,18 +36,26 @@ class BaseAgent(ABC, Generic[InputType, OutputType]):
         from app.utils.sse import send_sse_message
         from app.models.document import DocumentStatus
 
-        # Fire-and-forget — don't block the analysis pipeline
+        # Fire-and-forget — don't block the analysis pipeline.
+        # Swallow all errors: progress updates are advisory; the doc may have been
+        # deleted mid-analysis (404 NotFound) and that must not crash the agent.
         async def _do_update():
-            await firestore.update_document_status_and_progress(document_id, message, progress)
-            event_log = {
-                "agent": self.agent_name,
-                "event_type": event_type,
-                "message": message,
-                "progress": progress,
-                "timestamp": datetime.utcnow().isoformat() + "Z",
-                "data": data if data else {}
-            }
-            await firestore.add_document_event(document_id, event_log)
+            try:
+                await firestore.update_document_status_and_progress(document_id, message, progress)
+                event_log = {
+                    "agent": self.agent_name,
+                    "event_type": event_type,
+                    "message": message,
+                    "progress": progress,
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "data": data if data else {}
+                }
+                await firestore.add_document_event(document_id, event_log)
+            except Exception:  # noqa: BLE001 — best-effort progress reporting
+                import logging
+                logging.getLogger(__name__).debug(
+                    "Progress update skipped for %s (likely deleted)", document_id, exc_info=True
+                )
         asyncio.create_task(_do_update())
 
         # Send SSE message to connected clients
