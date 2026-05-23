@@ -56,48 +56,7 @@ The output is not a chatbot answer — it is a structured, auditable, lawyer-gra
 
 ### Agent flow
 
-```
-            ┌─────────────────────────────────────────────────────────┐
-            │   1.  Orchestrator Agent  (FastAPI / Cloud Run)         │
-            │       - receives bundle, validates, fans out work       │
-            │       - streams progress (SSE), persists state          │
-            └────────┬────────────────────────────────────────────────┘
-                     │ ① extract structured data
-                     ▼
-            ┌─────────────────────────────────────────────────────────┐
-            │   2.  Parser Agent  (Gemini 2.5-flash, multimodal)      │
-            │       - reads PDFs natively                             │
-            │       - returns strict JSON: parties, property,         │
-            │         registration, stamp duty, chain of title        │
-            └────────┬────────────────────────────────────────────────┘
-                     │ ② run rules + fraud in parallel
-                     ├──────────────────────┐
-                     ▼                      ▼
-       ┌──────────────────────┐   ┌──────────────────────┐
-       │ 3. Legal Rules Agent │   │ 4. Fraud Detection   │
-       │    (Gemini 2.5)      │   │    Agent (Gemini 2.5)│
-       │  - registration      │   │  - name mismatch     │
-       │  - stamp duty        │   │  - chain gaps        │
-       │  - state rules       │   │  - undervaluation    │
-       │  - RERA              │   │  - Roshni / tribal   │
-       │  - per-doc findings  │   │  - benami signals    │
-       └──────────┬───────────┘   └──────────┬───────────┘
-                  │                          │
-                  └────────────┬─────────────┘
-                               │ ③ consolidate + dedupe + grade
-                               ▼
-            ┌─────────────────────────────────────────────────────────┐
-            │   5.  Report Agent  (Gemini 2.5-flash)                  │
-            │       - lawyer-style summary                            │
-            │       - severity counts (low/medium/high/critical)      │
-            │       - verdict: go / clarify / stop                    │
-            │       - recommended next steps                          │
-            └────────┬────────────────────────────────────────────────┘
-                     │ ④ persist + stream
-                     ▼
-              Firestore (findings, audit)  ──►  Frontend (SSE)
-              Pub/Sub (fraud alerts)       ──►  BigQuery analytics
-```
+![Agent flow diagram](agent-flow.png)
 
 ### Step-by-step business process
 
@@ -116,49 +75,7 @@ The output is not a chatbot answer — it is a structured, auditable, lawyer-gra
 
 ## Section 5: Architecture Diagram — GCP Services Used
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│  PRESENTATION LAYER                                                      │
-│  Next.js (Cloud Run) · Firebase Authentication · CDN                     │
-└──────────────────────────────────┬───────────────────────────────────────┘
-                                   │  HTTPS + ID token
-                                   ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│  ORCHESTRATION LAYER                                                     │
-│  FastAPI API (Cloud Run) · SSE streaming · request validation            │
-└──────┬─────────────────────────────────────────────────┬─────────────────┘
-       │ publish job                                     │ direct (small)
-       ▼                                                 │
-┌──────────────────┐                                     │
-│  Pub/Sub         │  topics: analysis_jobs · fraud_alert · embedding_jobs│
-│  + DLQ           │  decouples bursts, retries, fan-out                  │
-└────────┬─────────┘                                     │
-         │ pull                                          │
-         ▼                                                ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│  AGENT LAYER  (Cloud Run worker, auto-scale 0 → N)                       │
-│                                                                          │
-│    Vertex AI Gemini 2.5-flash                                            │
-│    ┌──────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────┐        │
-│    │  Parser  │  │ Legal Rules  │  │   Fraud      │  │  Report  │        │
-│    │  Agent   │  │   Agent      │  │  Detection   │  │  Agent   │        │
-│    └──────────┘  └──────────────┘  └──────────────┘  └──────────┘        │
-└──────┬──────────────────────────────────────────────────┬────────────────┘
-       │                                                  │
-       ▼                                                  ▼
-┌─────────────────┐  ┌────────────────┐  ┌──────────────────────────────┐
-│  Cloud Storage  │  │  Firestore     │  │  BigQuery                    │
-│  (PDFs, signed  │  │  analyses,     │  │  fraud_patterns, agent_metrics│
-│   URLs, TTL)    │  │  findings,     │  │  (cross-user analytics)      │
-└─────────────────┘  │  audit log     │  └──────────────────────────────┘
-                     └────────────────┘
-                                   │
-┌──────────────────────────────────────────────────────────────────────────┐
-│  CROSS-CUTTING                                                           │
-│  Cloud Logging · Cloud Monitoring · Secret Manager · IAM                 │
-│  Artifact Registry · Cloud Build (CI/CD)                                 │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+![Architecture diagram](architecture.png)
 
 ### GCP service inventory
 

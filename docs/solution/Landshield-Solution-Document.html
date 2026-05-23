@@ -39,91 +39,12 @@
 <h2>Section 4: End-to-End Business Process — Agent Flow &amp; Agent Count</h2>
 <p><strong>Number of agents: 5</strong> — 1 Orchestrator (controller) + 4 specialised Gemini 2.5 agents.</p>
 <h3>Agent flow</h3>
-<pre><code>            ┌─────────────────────────────────────────────────────────┐
-            │   1.  Orchestrator Agent  (FastAPI / Cloud Run)         │
-            │       - receives bundle, validates, fans out work       │
-            │       - streams progress (SSE), persists state          │
-            └────────┬────────────────────────────────────────────────┘
-                     │ ① extract structured data
-                     ▼
-            ┌─────────────────────────────────────────────────────────┐
-            │   2.  Parser Agent  (Gemini 2.5-flash, multimodal)      │
-            │       - reads PDFs natively                             │
-            │       - returns strict JSON: parties, property,         │
-            │         registration, stamp duty, chain of title        │
-            └────────┬────────────────────────────────────────────────┘
-                     │ ② run rules + fraud in parallel
-                     ├──────────────────────┐
-                     ▼                      ▼
-       ┌──────────────────────┐   ┌──────────────────────┐
-       │ 3. Legal Rules Agent │   │ 4. Fraud Detection   │
-       │    (Gemini 2.5)      │   │    Agent (Gemini 2.5)│
-       │  - registration      │   │  - name mismatch     │
-       │  - stamp duty        │   │  - chain gaps        │
-       │  - state rules       │   │  - undervaluation    │
-       │  - RERA              │   │  - Roshni / tribal   │
-       │  - per-doc findings  │   │  - benami signals    │
-       └──────────┬───────────┘   └──────────┬───────────┘
-                  │                          │
-                  └────────────┬─────────────┘
-                               │ ③ consolidate + dedupe + grade
-                               ▼
-            ┌─────────────────────────────────────────────────────────┐
-            │   5.  Report Agent  (Gemini 2.5-flash)                  │
-            │       - lawyer-style summary                            │
-            │       - severity counts (low/medium/high/critical)      │
-            │       - verdict: go / clarify / stop                    │
-            │       - recommended next steps                          │
-            └────────┬────────────────────────────────────────────────┘
-                     │ ④ persist + stream
-                     ▼
-              Firestore (findings, audit)  ──►  Frontend (SSE)
-              Pub/Sub (fraud alerts)       ──►  BigQuery analytics</code></pre>
+<p><img src="agent-flow.png" alt="Agent flow diagram" style="max-width:100%;height:auto;"/></p>
 <h3>Step-by-step business process</h3>
 <ol><li>Buyer signs in (Firebase Auth) and uploads a bundle (sale deed, EC, mutation, tax receipts, building plan).</li><li>Frontend pushes files to FastAPI; backend stores them in GCS (signed URLs) and creates a Firestore record (<code>status=queued</code>).</li><li>Orchestrator publishes an <code>analysis_jobs</code> message to Pub/Sub; a Cloud Run worker picks it up.</li><li>Parser Agent extracts a structured JSON schema from every document.</li><li>Legal Rules Agent and Fraud Detection Agent run in parallel on the extracted data.</li><li>Findings are normalised, deduplicated, consolidated, and graded by severity.</li><li>Report Agent generates the final lawyer-style report.</li><li>Report is persisted to Firestore; if <code>risk_score ≥ 60</code>, a <code>fraud_alert</code> is published to Pub/Sub → BigQuery streaming insert for cross-user pattern detection.</li><li>SSE stream pushes live progress + final report to the buyer&#x27;s browser.</li><li>Cloud Logging + Cloud Monitoring capture agent latency, model cost, and error rates throughout.</li></ol>
 <hr/>
 <h2>Section 5: Architecture Diagram — GCP Services Used</h2>
-<pre><code>┌──────────────────────────────────────────────────────────────────────────┐
-│  PRESENTATION LAYER                                                      │
-│  Next.js (Cloud Run) · Firebase Authentication · CDN                     │
-└──────────────────────────────────┬───────────────────────────────────────┘
-                                   │  HTTPS + ID token
-                                   ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│  ORCHESTRATION LAYER                                                     │
-│  FastAPI API (Cloud Run) · SSE streaming · request validation            │
-└──────┬─────────────────────────────────────────────────┬─────────────────┘
-       │ publish job                                     │ direct (small)
-       ▼                                                 │
-┌──────────────────┐                                     │
-│  Pub/Sub         │  topics: analysis_jobs · fraud_alert · embedding_jobs│
-│  + DLQ           │  decouples bursts, retries, fan-out                  │
-└────────┬─────────┘                                     │
-         │ pull                                          │
-         ▼                                                ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│  AGENT LAYER  (Cloud Run worker, auto-scale 0 → N)                       │
-│                                                                          │
-│    Vertex AI Gemini 2.5-flash                                            │
-│    ┌──────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────┐        │
-│    │  Parser  │  │ Legal Rules  │  │   Fraud      │  │  Report  │        │
-│    │  Agent   │  │   Agent      │  │  Detection   │  │  Agent   │        │
-│    └──────────┘  └──────────────┘  └──────────────┘  └──────────┘        │
-└──────┬──────────────────────────────────────────────────┬────────────────┘
-       │                                                  │
-       ▼                                                  ▼
-┌─────────────────┐  ┌────────────────┐  ┌──────────────────────────────┐
-│  Cloud Storage  │  │  Firestore     │  │  BigQuery                    │
-│  (PDFs, signed  │  │  analyses,     │  │  fraud_patterns, agent_metrics│
-│   URLs, TTL)    │  │  findings,     │  │  (cross-user analytics)      │
-└─────────────────┘  │  audit log     │  └──────────────────────────────┘
-                     └────────────────┘
-                                   │
-┌──────────────────────────────────────────────────────────────────────────┐
-│  CROSS-CUTTING                                                           │
-│  Cloud Logging · Cloud Monitoring · Secret Manager · IAM                 │
-│  Artifact Registry · Cloud Build (CI/CD)                                 │
-└──────────────────────────────────────────────────────────────────────────┘</code></pre>
+<p><img src="architecture.png" alt="Architecture diagram" style="max-width:100%;height:auto;"/></p>
 <h3>GCP service inventory</h3>
 <table><thead><tr><th>GCP Service</th><th>Role in Landshield</th></tr></thead><tbody><tr><td><strong>Vertex AI — Gemini 2.5-flash</strong></td><td>Multimodal reasoning engine for all 4 specialised agents.</td></tr><tr><td><strong>Cloud Run</strong></td><td>Serverless hosting for FastAPI backend, Next.js frontend, and async workers. Auto-scales per request.</td></tr><tr><td><strong>Cloud Storage (GCS)</strong></td><td>Stores uploaded PDFs with signed URLs and lifecycle TTL.</td></tr><tr><td><strong>Firestore (Native)</strong></td><td>Document database for analysis state, findings, parties, audit trail.</td></tr><tr><td><strong>Pub/Sub</strong></td><td>Decouples API from heavy analysis; topics for <code>analysis_jobs</code>, <code>fraud_alert</code>, <code>embedding_jobs</code>; dead-letter queue.</td></tr><tr><td><strong>BigQuery</strong></td><td>Cross-user fraud-pattern analytics and agent telemetry. Streaming insert from Pub/Sub.</td></tr><tr><td><strong>Firebase Authentication</strong></td><td>Email/password and Google sign-in. ID tokens verified server-side.</td></tr><tr><td><strong>Secret Manager</strong></td><td>Gemini API keys, Firebase admin credentials, third-party tokens.</td></tr><tr><td><strong>Cloud Build</strong></td><td>CI/CD: GitHub push → build → push to Artifact Registry → deploy Cloud Run.</td></tr><tr><td><strong>Artifact Registry</strong></td><td>Container image storage for backend and frontend. Vulnerability scanning enabled.</td></tr><tr><td><strong>Cloud Logging &amp; Monitoring</strong></td><td>Structured JSON logs, latency, model cost, error-rate alerts, SLO dashboards.</td></tr><tr><td><strong>IAM</strong></td><td>Per-service service accounts with least-privilege roles on Firestore, GCS, Pub/Sub, Secret Manager.</td></tr></tbody></table>
 <hr/>

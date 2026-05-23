@@ -23,6 +23,12 @@ code_buf = []
 def inline(s: str) -> str:
     # Escape HTML first, then re-introduce markdown spans.
     s = html.escape(s)
+    # images ![alt](src)  -- must run BEFORE link substitution
+    s = re.sub(
+        r"!\[([^\]]*)\]\(([^)]+)\)",
+        r'<img src="\2" alt="\1" style="max-width:100%;height:auto;"/>',
+        s,
+    )
     # links [t](u)
     s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', s)
     # bold **x**
