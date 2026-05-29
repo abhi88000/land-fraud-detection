@@ -256,16 +256,21 @@ const DocumentList: React.FC<DocumentListProps> = ({ bundles, onDelete, onAnalys
             elevation={0}
             onClick={() => bundle.status === BundleStatus.COMPLETED ? router.push(`/bundles/${bundle.id}`) : undefined}
             sx={{
-              p: 2.5, borderRadius: '14px', border: '1px solid #e8eaed', bgcolor: 'white',
+              p: 2, borderRadius: '16px', bgcolor: 'white',
+              boxShadow: '0 0 0 1px rgba(60,64,67,0.10)',
               display: 'flex', alignItems: 'center', gap: 2,
               cursor: bundle.status === BundleStatus.COMPLETED ? 'pointer' : 'default',
-              transition: 'all 0.15s ease',
-              '&:hover': { borderColor: '#d2d5d9', bgcolor: '#fafafa' },
+              transition: 'box-shadow .15s, transform .15s, background-color .15s',
+              '&:hover': {
+                boxShadow: '0 0 0 1px rgba(60,64,67,0.14), 0 1px 3px rgba(60,64,67,0.10), 0 4px 12px rgba(60,64,67,0.06)',
+                bgcolor: '#fafbfc',
+              },
             }}
           >
             {/* Icon */}
             <Box sx={{
-              width: 44, height: 44, borderRadius: '12px', bgcolor: '#e8f0fe',
+              width: 44, height: 44, borderRadius: '12px',
+              background: 'linear-gradient(135deg,#e8f0fe 0%,#f3e8ff 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               <FolderIcon sx={{ fontSize: 22, color: '#1a73e8' }} />
@@ -273,43 +278,39 @@ const DocumentList: React.FC<DocumentListProps> = ({ bundles, onDelete, onAnalys
 
             {/* Info */}
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontWeight: 600, color: '#202124', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {bundle.name || `${bundle.land_type} â€” ${bundle.district}`}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5, flexWrap: 'wrap' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <PlaceIcon sx={{ fontSize: 12, color: '#80868b' }} />
-                  <Typography variant="caption" sx={{ color: '#80868b' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
+                <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: statusCfg.color, flexShrink: 0 }} />
+                <Typography sx={{ fontWeight: 500, color: '#202124', fontSize: '0.94rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.1px' }}>
+                  {bundle.name || `${bundle.land_type} — ${bundle.district}`}
+                </Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: statusCfg.color, fontWeight: 500 }}>
+                  {statusCfg.label}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75, mt: 0.25, flexWrap: 'wrap', pl: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                  <PlaceIcon sx={{ fontSize: 13, color: '#80868b' }} />
+                  <Typography variant="caption" sx={{ color: '#5f6368', fontSize: '0.74rem' }}>
                     {bundle.district}, {bundle.state}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <LandscapeIcon sx={{ fontSize: 12, color: '#80868b' }} />
-                  <Typography variant="caption" sx={{ color: '#80868b' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                  <LandscapeIcon sx={{ fontSize: 13, color: '#80868b' }} />
+                  <Typography variant="caption" sx={{ color: '#5f6368', fontSize: '0.74rem' }}>
                     {bundle.land_type}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <InsertDriveFileIcon sx={{ fontSize: 12, color: '#80868b' }} />
-                  <Typography variant="caption" sx={{ color: '#80868b' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                  <InsertDriveFileIcon sx={{ fontSize: 13, color: '#80868b' }} />
+                  <Typography variant="caption" sx={{ color: '#5f6368', fontSize: '0.74rem' }}>
                     {fileCount} file{fileCount !== 1 ? 's' : ''}
                   </Typography>
                 </Box>
               </Box>
             </Box>
 
-            {/* Status */}
-            <Chip
-              label={statusCfg.label}
-              size="small"
-              sx={{
-                fontWeight: 600, fontSize: '0.7rem', height: 24,
-                bgcolor: statusCfg.bg, color: statusCfg.color, border: 'none',
-              }}
-            />
-
             {/* Actions */}
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', gap: 0.25, alignItems: 'center' }}>
               {bundle.status === BundleStatus.CREATED && (
                 <Tooltip title="Start Analysis">
                   <Button
