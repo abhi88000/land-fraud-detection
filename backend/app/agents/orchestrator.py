@@ -2,6 +2,7 @@ from app.agents.core.base import BaseAgent
 from app.agents.parser.agent import DocumentParserAgent
 from app.agents.legal.agent import LegalRulesAgent
 from app.agents.fraud.agent import FraudDetectionAgent
+from app.agents.news.agent import RegionalNewsAgent
 from app.agents.report.agent import ReportGeneratorAgent, ReportInput
 from app.models.document import DocumentStatus, Document
 from app.models.bundle import Bundle, BundleStatus
@@ -31,6 +32,7 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
         self.parser_agent = DocumentParserAgent()
         self.legal_agent = LegalRulesAgent()
         self.fraud_agent = FraudDetectionAgent()
+        self.news_agent = RegionalNewsAgent()
         self.report_agent = ReportGeneratorAgent()
 
     async def run(self, document_id: str, state_override: str = "", district_override: str = "") -> AnalysisReport:
@@ -109,10 +111,11 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
                 if document.land_type:
                     extracted_data.property_details.land_type = document.land_type
 
-            # 3. Legal Rules Check and Fraud Detection (run in parallel)
-            legal_findings, fraud_findings = await asyncio.gather(
+            # 3. Legal Rules Check, Fraud Detection, and Regional News (run in parallel)
+            legal_findings, fraud_findings, regional_news = await asyncio.gather(
                 self.legal_agent.run(extracted_data, document_id),
                 self.fraud_agent.run(extracted_data, document_id),
+                self.news_agent.run(extracted_data, document_id),
             )
 
             # 5. Report Generation
@@ -123,6 +126,7 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
                 fraud_findings=fraud_findings
             )
             analysis_report = await self.report_agent.run(report_input, document_id)
+            analysis_report.regional_news = regional_news
 
             # 6. Save final report and update document status to COMPLETED
             report_dict = json.loads(analysis_report.model_dump_json())
@@ -416,11 +420,12 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
                 48,
             )
 
-            # 4. Run legal and fraud checks in parallel on combined data
+            # 4. Run legal, fraud, and regional-news checks in parallel on combined data
             # Use bundle_id as the progress tracking ID
-            legal_findings, fraud_findings = await asyncio.gather(
+            legal_findings, fraud_findings, regional_news = await asyncio.gather(
                 self.legal_agent.run(combined, bundle_id),
                 self.fraud_agent.run(combined, bundle_id),
+                self.news_agent.run(combined, bundle_id),
             )
 
             # Post-analysis summaries
@@ -464,6 +469,7 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
             # Attach bundle-specific fields
             report.documents_analyzed = doc_summaries
             report.missing_documents = missing_docs
+            report.regional_news = regional_news
 
             # 7. Save report and update status
             report_dict = json.loads(report.model_dump_json())

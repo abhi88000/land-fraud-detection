@@ -107,6 +107,15 @@ export interface DocumentSummary {
   extracted_data: ExtractedData | null;
 }
 
+export interface NewsItem {
+  title: string;
+  summary: string;
+  source?: string | null;
+  url?: string | null;
+  published_at?: string | null;
+  relevance?: string | null;
+}
+
 export interface AnalysisReport {
   document_id: string;
   summary: string;
@@ -117,6 +126,7 @@ export interface AnalysisReport {
   verification_checklist: VerificationChecklistItem[];
   documents_analyzed?: DocumentSummary[];
   missing_documents?: string[];
+  regional_news?: NewsItem[];
   generated_at: string;
 }
 

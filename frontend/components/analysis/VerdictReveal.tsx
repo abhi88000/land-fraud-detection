@@ -144,7 +144,7 @@ export default function VerdictReveal({ report }: VerdictRevealProps) {
         gap: 2,
       }}>
         <CategoryBar label="Legal Compliance" value={legalScore} delay={200} />
-        <CategoryBar label="Fraud Signals"    value={fraudScore} delay={350} />
+        <CategoryBar label="Risk indicators"  value={fraudScore} delay={350} />
         <CategoryBar label="Data Completeness" value={completenessScore} delay={500} />
       </Box>
     </Box>

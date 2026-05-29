@@ -20,7 +20,7 @@ const AGENT_STYLES: Record<string, AgentStyle> = {
   Orchestrator: { label: 'Orchestrator', color: '#5f6368', bg: '#f1f3f4' },
   Parser:       { label: 'Parser',       color: '#1a73e8', bg: '#e8f0fe' },
   Legal:        { label: 'Legal',        color: '#1e8e3e', bg: '#e6f4ea' },
-  Fraud:        { label: 'Fraud',        color: '#d93025', bg: '#fce8e6' },
+  Fraud:        { label: 'Risk',         color: '#d93025', bg: '#fce8e6' },
   Reporter:     { label: 'Reporter',     color: '#b8860b', bg: '#fef7e0' },
 };
 

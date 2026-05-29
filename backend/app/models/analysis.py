@@ -150,6 +150,14 @@ class VerificationChecklistItem(BaseModel):
     is_checked: bool
     details: Optional[str] = None
 
+class NewsItem(BaseModel):
+    title: str
+    summary: str = ""
+    source: Optional[str] = None
+    url: Optional[str] = None
+    published_at: Optional[str] = None  # ISO date string, may be prefixed with ~ if approximate
+    relevance: Optional[str] = None
+
 class DocumentSummary(BaseModel):
     """Summary of a single document within a bundle."""
     document_id: str = ""
@@ -169,6 +177,7 @@ class AnalysisReport(BaseModel):
     # Bundle-specific fields
     documents_analyzed: Optional[List[DocumentSummary]] = None
     missing_documents: Optional[List[str]] = None
+    regional_news: List[NewsItem] = Field(default_factory=list)
     generated_at: datetime = Field(default_factory=datetime.utcnow, description="Timestamp of report generation")
 
     class Config:

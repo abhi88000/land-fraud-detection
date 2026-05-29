@@ -23,7 +23,7 @@ import StraightenIcon from '@mui/icons-material/Straighten';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { AnalysisReport, LegalFinding, FraudFinding, Party } from '@/lib/types';
+import { AnalysisReport, LegalFinding, FraudFinding, NewsItem, Party } from '@/lib/types';
 
 type Severity = 'critical' | 'high' | 'medium' | 'low';
 
@@ -140,6 +140,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
   const docs = report.documents_analyzed || [];
   const missing = report.missing_documents || [];
   const checklist = report.verification_checklist || [];
+  const news = report.regional_news || [];
 
   const [tab, setTab] = useState(0);
   const [sevFilter, setSevFilter] = useState<Severity | 'all'>('all');
@@ -232,6 +233,16 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
           } />
           <Tab label={`Documents (${docs.length + missing.length})`} />
           <Tab label={`Checklist (${checklist.length})`} />
+          <Tab label={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              In your area
+              {news.length > 0 && (
+                <Box sx={{ px: 0.75, py: 0.05, fontSize: '0.65rem', fontWeight: 700, borderRadius: '999px', bgcolor: '#e8f0fe', color: '#1a73e8' }}>
+                  {news.length}
+                </Box>
+              )}
+            </Box>
+          } />
           <Tab label="Parties" />
         </Tabs>
 
@@ -304,8 +315,22 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
             </Box>
           )}
 
-          {/* ─── Parties ─── */}
+          {/* ─── Regional news ─── */}
           {tab === 3 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography sx={{ fontSize: '0.78rem', color: '#5f6368', mb: 0.5 }}>
+                Recent land-related news from this district/state — for situational awareness, not legal advice.
+              </Typography>
+              {news.length === 0 ? (
+                <EmptyState text="No recent regional items surfaced. Try checking your state's Registration & Stamps department for advisories." />
+              ) : (
+                news.map((n, i) => <NewsCard key={i} n={n} />)
+              )}
+            </Box>
+          )}
+
+          {/* ─── Parties ─── */}
+          {tab === 4 && (
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
               <PartyColumn title="Sellers"   accent="#d93025" people={partiesByRole.seller} />
               <PartyColumn title="Buyers"    accent="#1e8e3e" people={partiesByRole.buyer} />
@@ -717,6 +742,88 @@ function EmptyState({ text }: { text: string }) {
     <Box sx={{ py: 4, textAlign: 'center' }}>
       <CheckCircleIcon sx={{ fontSize: 32, color: '#1e8e3e', mb: 1 }} />
       <Typography sx={{ fontSize: '0.85rem', color: '#3c4043', fontWeight: 500 }}>{text}</Typography>
+    </Box>
+  );
+}
+
+function NewsCard({ n }: { n: NewsItem }) {
+  const dateLabel = (() => {
+    if (!n.published_at) return null;
+    const raw = n.published_at.replace(/^~/, '').trim();
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return n.published_at;
+    return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+  })();
+  const isApprox = (n.published_at || '').startsWith('~');
+  const body = (
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap', mb: 0.25 }}>
+        <Typography sx={{ fontSize: '0.88rem', fontWeight: 600, color: '#202124', lineHeight: 1.35 }}>
+          {n.title}
+        </Typography>
+      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
+        {n.source && (
+          <Typography sx={{ fontSize: '0.7rem', color: '#5f6368', fontWeight: 500 }}>
+            {n.source}
+          </Typography>
+        )}
+        {dateLabel && (
+          <>
+            {n.source && <Box sx={{ width: 3, height: 3, bgcolor: '#bdc1c6', borderRadius: '50%' }} />}
+            <Typography sx={{ fontSize: '0.7rem', color: '#5f6368' }}>
+              {isApprox ? '~' : ''}{dateLabel}
+            </Typography>
+          </>
+        )}
+      </Box>
+      {n.summary && (
+        <Typography sx={{ fontSize: '0.78rem', color: '#3c4043', lineHeight: 1.5, mb: n.relevance ? 0.75 : 0 }}>
+          {n.summary}
+        </Typography>
+      )}
+      {n.relevance && (
+        <Typography sx={{
+          fontSize: '0.72rem',
+          color: '#1a73e8',
+          bgcolor: '#e8f0fe',
+          px: 1,
+          py: 0.5,
+          borderRadius: '6px',
+          display: 'inline-block',
+          fontWeight: 500,
+        }}>
+          Why it matters · {n.relevance}
+        </Typography>
+      )}
+    </Box>
+  );
+  if (n.url) {
+    return (
+      <Box
+        component="a"
+        href={n.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        sx={{
+          display: 'block',
+          p: 1.5,
+          borderRadius: '12px',
+          bgcolor: '#fff',
+          textDecoration: 'none',
+          color: 'inherit',
+          boxShadow: '0 0 0 1px rgba(60,64,67,0.10)',
+          transition: 'box-shadow .15s, transform .15s',
+          '&:hover': { boxShadow: '0 1px 3px rgba(60,64,67,0.18), 0 0 0 1px rgba(26,115,232,0.35)' },
+        }}
+      >
+        {body}
+      </Box>
+    );
+  }
+  return (
+    <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: '#fff', boxShadow: '0 0 0 1px rgba(60,64,67,0.10)' }}>
+      {body}
     </Box>
   );
 }

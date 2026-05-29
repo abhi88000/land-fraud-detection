@@ -55,7 +55,7 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
         )
 
     async def run(self, extracted_data: ExtractedData, document_id: str) -> List[FraudFinding]:
-        await self._update_progress(document_id, "Detecting potential fraud indicators...", 55, "fraud_detection_started")
+        await self._update_progress(document_id, "Reviewing the document for risk indicators...", 55, "fraud_detection_started")
 
         try:
             # Build context about the location for grounded search
@@ -146,5 +146,5 @@ class FraudDetectionAgent(BaseAgent[ExtractedData, List[FraudFinding]]):
                 recommendation="Please retry the analysis or consult a legal professional.",
             )]
 
-        await self._update_progress(document_id, "Fraud detection complete.", 75, "fraud_detection_completed", data=[f.dict() for f in findings])
+        await self._update_progress(document_id, "Risk review complete.", 75, "fraud_detection_completed", data=[f.dict() for f in findings])
         return findings
