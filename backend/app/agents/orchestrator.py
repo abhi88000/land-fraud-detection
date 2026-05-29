@@ -483,7 +483,15 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
 
     def _identify_missing_documents(self, found_types: list[str], state: str, land_type: str) -> list[str]:
         """Identify documents the user should obtain based on what's in the bundle."""
-        found_lower = [t.lower() for t in found_types if t]
+        # Normalise found types: lowercase + strip + collapse separators so '7/12', '7-12',
+        # '7 12', 'V.F. 7/12' all match the same canonical keyword.
+        import re
+        def _norm(s: str) -> str:
+            s = (s or "").lower()
+            s = re.sub(r"[\\/\-_.]+", " ", s)
+            s = re.sub(r"\s+", " ", s).strip()
+            return s
+        found_lower = [_norm(t) for t in found_types if t]
 
         # Universal documents every land transaction should have
         essential = {
@@ -494,10 +502,18 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
             "Mutation / Khata Transfer Record": ["mutation", "khata", "khata transfer", "mutation register"],
         }
 
+        # Keyword aliases for 7/12-family records (used in agricultural land + Maharashtra).
+        seven_twelve_aliases = [
+            "7 12", "712", "satbara", "saatbaara", "saat baara",
+            "property extract", "village form 7 12", "village form vii xii",
+            "v f 7 12", "vf 7 12", "rtc", "patta", "adangal", "pahani",
+            "record of rights", "ror",
+        ]
+
         # Land-type specific
         if land_type and "agricultural" in land_type.lower():
-            essential["7/12 Extract / RTC / Patta / Adangal"] = ["7/12", "rtc", "patta", "adangal", "pahani", "record of rights"]
-            essential["Non-Agriculturist (NA) Conversion Order (if applicable)"] = ["na order", "conversion order", "non-agriculturist"]
+            essential["7/12 Extract / RTC / Patta / Adangal"] = seven_twelve_aliases
+            essential["Non-Agriculturist (NA) Conversion Order (if applicable)"] = ["na order", "conversion order", "non agriculturist"]
             essential["Land Revenue / Khajana Receipt"] = ["khajana", "land revenue"]
         elif land_type and "commercial" in land_type.lower():
             essential["RERA Registration (if applicable)"] = ["rera"]
@@ -513,9 +529,9 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
         # State-specific additions
         state_lower = state.lower() if state else ""
         if "karnataka" in state_lower:
-            essential["E-Khata Certificate"] = ["e-khata", "ekhata"]
+            essential["E-Khata Certificate"] = ["e khata", "ekhata"]
         elif "maharashtra" in state_lower:
-            essential["7/12 Extract & 8A Extract"] = ["7/12", "8a extract"]
+            essential["7/12 Extract & 8A Extract"] = seven_twelve_aliases + ["8a extract", "8 a extract"]
         elif "tamil nadu" in state_lower:
             essential["Patta / Chitta"] = ["patta", "chitta"]
         elif any(s in state_lower for s in ["jharkhand", "jammu", "kashmir"]):
@@ -523,7 +539,8 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
 
         missing = []
         for doc_name, keywords in essential.items():
-            if not any(kw in ft for ft in found_lower for kw in keywords):
+            norm_keywords = [_norm(k) for k in keywords]
+            if not any(kw in ft for ft in found_lower for kw in norm_keywords):
                 missing.append(doc_name)
 
         return missing

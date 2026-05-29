@@ -274,7 +274,12 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ report }) => {
                   <Muted>No documents analyzed.</Muted>
                 ) : (
                   docs.map((d, i) => (
-                    <DocRow key={i} present file={d.file_name} subtitle={d.document_type ? `Detected as ${d.document_type}` : undefined} />
+                    <DocRow
+                      key={i}
+                      present
+                      file={d.document_type || d.file_name}
+                      subtitle={d.document_type ? d.file_name : undefined}
+                    />
                   ))
                 )}
               </DocsBlock>

@@ -5,6 +5,42 @@ from app.models.document import DocumentStatus
 from datetime import datetime
 from pydantic import BaseModel
 import json
+import re
+
+_SEVERITY_RANK = {Severity.LOW: 1, Severity.MEDIUM: 2, Severity.HIGH: 3, Severity.CRITICAL: 4}
+
+
+def _norm_text(s: str | None) -> str:
+    if not s:
+        return ""
+    s = s.lower()
+    s = re.sub(r"\s+", " ", s).strip()
+    # Use first ~80 chars as the semantic fingerprint — agents often vary the tail
+    return s[:80]
+
+
+def _dedup_legal_findings(findings: List[LegalFinding]) -> List[LegalFinding]:
+    """Collapse legal findings sharing the same (rule_id, fingerprint); keep most severe."""
+    best: dict[tuple, LegalFinding] = {}
+    for f in findings:
+        key = (f.rule_id or "", _norm_text(f.description))
+        existing = best.get(key)
+        if existing is None or _SEVERITY_RANK.get(f.severity, 0) > _SEVERITY_RANK.get(existing.severity, 0):
+            best[key] = f
+    return list(best.values())
+
+
+def _dedup_fraud_findings(findings: List[FraudFinding]) -> List[FraudFinding]:
+    """Collapse fraud findings sharing the same (fraud_type, fingerprint); keep most severe."""
+    best: dict[tuple, FraudFinding] = {}
+    for f in findings:
+        ftype = f.fraud_type.value if hasattr(f.fraud_type, "value") else str(f.fraud_type)
+        key = (ftype, _norm_text(f.description))
+        existing = best.get(key)
+        if existing is None or _SEVERITY_RANK.get(f.severity, 0) > _SEVERITY_RANK.get(existing.severity, 0):
+            best[key] = f
+    return list(best.values())
+
 
 class ReportInput(BaseModel):
     document_id: str
@@ -20,8 +56,9 @@ class ReportGeneratorAgent(BaseAgent[ReportInput, AnalysisReport]):
         await self._update_progress(document_id, "Generating final analysis report...", 80, "report_generation_started")
 
         extracted_data = input_data.extracted_data
-        legal_findings = input_data.legal_findings
-        fraud_findings = input_data.fraud_findings
+        # Collapse near-duplicates emitted by parallel agents before scoring/rendering.
+        legal_findings = _dedup_legal_findings(input_data.legal_findings)
+        fraud_findings = _dedup_fraud_findings(input_data.fraud_findings)
 
         # 1. Calculate Risk Score
         overall_score = 0
