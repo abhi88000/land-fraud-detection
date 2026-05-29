@@ -694,7 +694,7 @@ export default function HomePage() {
             {[
               { step: '01', title: 'Upload', desc: 'Drop your land documents — sale deeds, ECs, title deeds', color: '#4285F4' },
               { step: '02', title: 'Parse', desc: 'AI reads the document in 6+ Indian languages', color: '#34A853' },
-              { step: '03', title: 'Analyze', desc: 'Legal + Fraud agents check compliance & red flags', color: '#FBBC05' },
+              { step: '03', title: 'Analyze', desc: 'Legal + Risk agents check compliance and document consistency', color: '#FBBC05' },
               { step: '04', title: 'Report', desc: 'Get risk score, findings & verification checklist', color: '#EA4335' },
             ].map((item, idx) => (
               <RevealOnScroll key={idx} delay={idx * 100}>
@@ -728,7 +728,7 @@ export default function HomePage() {
             {[
               { title: 'Multi-language OCR', desc: 'Hindi, English, Tamil, Kannada, Telugu, Marathi — reads all natively', color: '#4285F4' },
               { title: 'Legal compliance', desc: 'Transfer of Property Act, Registration Act, stamp duty & state laws', color: '#34A853' },
-              { title: 'Fraud patterns', desc: 'Detects benami, forged stamps, broken chains, encumbrance gaps', color: '#EA4335' },
+              { title: 'Risk indicators', desc: 'Surfaces name mismatches, broken ownership chains, encumbrance gaps and other inconsistencies', color: '#EA4335' },
               { title: 'Collective analysis', desc: 'Analyze multiple documents together for cross-reference verification', color: '#7B61FF' },
             ].map((feat, idx) => (
               <RevealOnScroll key={idx} delay={idx * 80}>

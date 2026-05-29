@@ -1,6 +1,6 @@
 # Landshield Backend
 
-This is the backend component of the Landshield platform, an AI-powered system designed to detect fraud in Indian land transactions. It is built to be robust, scalable, and secure, leveraging Google Cloud services and a multi-agent architecture.
+This is the backend component of the Landshield platform, an AI-powered system designed to review Indian land documents for internal consistency, completeness, and state-law compliance, and to surface concrete risk indicators alongside recent regional news. It is built to be robust, scalable, and secure, leveraging Google Cloud services and a multi-agent architecture.
 
 ---
 
@@ -33,7 +33,8 @@ This is the backend component of the Landshield platform, an AI-powered system d
 *   **Multi-Agent Orchestration:** Utilizes a Google ADK-powered multi-agent system for document analysis:
     *   **Document Parser Agent:** OCR, entity extraction (party names, property details, dates, etc.) using Gemini Vision.
     *   **Legal Rules Agent:** Checks compliance against Indian land laws (e.g., Transfer of Property Act, Registration Act, state-specific rules).
-    *   **Fraud Detection Agent:** Identifies discrepancies like name mismatches, broken ownership chains, and suspicious patterns.
+    *   **Risk Review Agent:** Surfaces concrete inconsistencies such as name mismatches, broken ownership chains, missing signatures, and other internal red flags worth verifying.
+    *   **Regional News Agent:** Uses Google Search grounding to surface recent land-related news (disputes, RERA actions, court rulings) for the parcel's district/state, with sources and dates.
     *   **Report Generator Agent:** Compiles findings into a comprehensive analysis report with a risk score and verification checklist.
 *   **Real-time Analysis Streaming:** Server-Sent Events (SSE) provide live updates on analysis progress to the frontend.
 *   **Secure Authentication:** Integrates with Firebase Authentication (OAuth 2.0) for user management and document access control.
@@ -277,7 +278,7 @@ backend/
 │   │   │   └── schemas/            # Pydantic models for API request/response validation
 │   │   ├── agents/
 │   │   │   ├── core/               # Base agent class and utilities
-│   │   │   ├── fraud/              # Fraud Detection Agent logic
+│   │   │   ├── fraud/              # Risk Review Agent logic (internal dir name retained for code stability)
 │   │   │   ├── legal/              # Legal Rules Agent logic
 │   │   │   ├── parser/             # Document Parser Agent logic
 │   │   │   ├── report/             # Report Generator Agent logic

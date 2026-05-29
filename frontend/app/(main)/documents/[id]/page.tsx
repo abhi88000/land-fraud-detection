@@ -134,7 +134,7 @@ export default function DocumentAnalysisPage() {
     return 0;
   };
 
-  const analysisSteps = ['Parsing Document', 'Legal Check', 'Fraud Detection', 'Generating Report'];
+  const analysisSteps = ['Parsing Document', 'Legal Check', 'Risk Review', 'Generating Report'];
 
   if (loading) {
     return (

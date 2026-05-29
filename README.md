@@ -1,15 +1,15 @@
-# 🛡️ LandGuard — AI-Powered Land Document Fraud Detection
+# 🛡️ LandGuard — AI-Powered Land Document Review & Risk Assessment
 
 > **Built for the Google Gemini CLI Buildathon** | Team: Trust Trailblazers
 
-**Use Case:** Land document fraud detection and verification
-**Domain:** Real Estate / Legal Tech
-**Subdomain:** Document Verification
-**Use case description:** Gen AI Agent to Read and Verify the land documents are compliant with Secure Land-Law Guidelines. The Guidelines can be configured as JSON file. The agents will parse the documents listed in the bundle to verify any known fraud patterns or statutory violations exist in public land records and case law available on the internet.
+**Use Case:** Land document review, consistency checks and risk scoring
+**Domain:** Real Estate / Legal Tech / BFSI
+**Subdomain:** Document verification and pre-purchase due diligence
+**Use case description:** A multi-agent Gen AI system that reads land documents and verifies they are internally consistent, complete, and aligned with state-specific land-law guidelines. The guidelines can be configured as JSON files. The agents parse the documents listed in a bundle to surface concrete risk indicators — name mismatches, broken ownership chains, missing supporting papers, statutory non-compliance — grounded with public land records, news, and case law available on the internet.
 
-Buying land is one of the riskiest things a common person can do in India. Most people can't read or understand government land documents, don't know what papers to check, and fraudsters exploit this — selling land they don't own, forging documents, selling the same plot to multiple buyers, or selling restricted land that legally cannot be resold.
+Buying land is one of the riskiest things a common person can do in India. Most people can't read or understand government land documents, don't know what papers to check, and bad actors exploit this — selling land they don't own, presenting incomplete chains of title, selling the same plot to multiple buyers, or selling restricted land that legally cannot be resold.
 
-**LandGuard fixes this.** Upload your land papers — sale deed, property extract, encumbrance certificate — and AI reads everything, explains it in simple language, and flags what looks wrong: mismatched names, missing signatures, broken ownership history, missing documents. It knows real fraud cases from news and courts, and official land rules for your state and district.
+**LandGuard helps.** Upload your land papers — sale deed, property extract, encumbrance certificate — and AI reads everything, explains it in simple language, and flags what looks inconsistent: mismatched names, missing signatures, broken ownership history, missing supporting documents. It surfaces recent land-related news and court rulings for your state and district, so you walk into the registrar's office knowing what to ask.
 
 **Live:** [land-guard-web-593405835352.us-central1.run.app](https://land-guard-web-593405835352.us-central1.run.app)
 
@@ -19,9 +19,9 @@ Buying land is one of the riskiest things a common person can do in India. Most 
 
 1. Open the live URL above on desktop or mobile.
 2. Sign up with any email (or sign in with Google) — no approval required.
-3. From the dashboard, click **Upload** and pick a sample PDF from [`docs/samples/`](docs/samples/) — `docs/samples/fraudulent/karnataka/01-agricultural-land-conversion-fraud.pdf` is a good first run.
-4. Watch the live SSE stream: parser → legal → fraud → report. Typical run: 30–90 s.
-5. Open the resulting report. The **Findings** tab is sorted by severity; Critical issues are highlighted in red.
+3. From the dashboard, click **Upload** and pick a sample PDF from [`docs/samples/`](docs/samples/).
+4. Watch the live SSE stream: parser → legal → risk review → regional news → report. Typical run: 30–90 s.
+5. Open the resulting report. The **Findings** tab is sorted by severity; Critical issues are highlighted in red. The **In your area** tab shows recent land-related news for the parcel's district/state with sources and dates.
 
 Want to try a clean (legitimate) document for contrast? Pick anything under [`docs/samples/legitimate/`](docs/samples/legitimate/).
 
@@ -32,9 +32,10 @@ Want to try a clean (legitimate) document for contrast? Pick anything under [`do
 1. **Upload** any land document (PDF or image, Hindi/English/regional languages)
 2. **AI parses** the document — extracts parties, property details, dates, registration info, stamps, signatures
 3. **Legal compliance check** — validates against Indian land laws (Transfer of Property Act 1882, Registration Act 1908, state-specific rules)
-4. **Fraud detection** — identifies red flags using AI + Google Search grounding with real court cases and news
-5. **Risk report** — generates a 0-100 risk score with plain-language findings and a verification checklist
-6. **Analytics dashboard** — risk distribution, fraud type breakdown, trend analysis across all your documents
+4. **Risk review** — surfaces concrete inconsistencies in the document using AI + Google Search grounding for real court cases and news
+5. **Regional news lookup** — grounded search for recent land-related news in the parcel's district/state, with sources and dates
+6. **Trust report** — generates a 0–100 trust score (penalised when supporting documents are missing) with plain-language findings and a verification checklist
+7. **Analytics dashboard** — risk distribution, breakdown of indicator types, trend analysis across all your documents
 
 All in real-time with live progress streaming via SSE.
 
@@ -60,9 +61,9 @@ All in real-time with live progress streaming via SSE.
 │  │  └──────┬───────┘                                             │   │
 │  │         │                                                     │   │
 │  │    ┌────▼────┐    ┌────────────┐                              │   │
-│  │    │  Legal   │    │   Fraud    │ ── Step 2: Parallel          │   │
-│  │    │  Rules   │    │ Detection  │    Analysis                  │   │
-│  │    │  Agent   │    │   Agent    │                              │   │
+│  │    │  Legal   │    │   Risk     │ ── Step 2: Parallel          │   │
+│  │    │  Rules   │    │  Review    │    Analysis (+ Regional      │   │
+│  │    │  Agent   │    │   Agent    │     News Agent)              │   │
 │  │    └────┬────┘    └─────┬──────┘                              │   │
 │  │         │               │   ▲ Google Search Grounding          │   │
 │  │         └───────┬───────┘                                     │   │
@@ -91,14 +92,15 @@ All in real-time with live progress streaming via SSE.
 |-------|-------|---------|
 | **Document Parser** | Gemini 2.5 Flash (Vision) | OCR + structured data extraction from land documents |
 | **Legal Rules** | Gemini 2.5 Flash | Validates against Indian land laws, stamp duty rules, state restrictions |
-| **Fraud Detection** | Gemini 2.5 Flash + Google Search | Detects fraud patterns, cross-references real cases via Search grounding |
-| **Report Generator** | Gemini 2.5 Flash | Compiles risk score (0-100), findings, and verification checklist |
+| **Risk Review** | Gemini 2.5 Flash + Google Search | Surfaces concrete document inconsistencies; cross-references real cases via Search grounding |
+| **Regional News** | Gemini 2.5 Flash + Google Search | Surfaces recent land-related news for the parcel's district/state |
+| **Report Generator** | Gemini 2.5 Flash | Compiles trust score (0–100, penalised for missing docs), findings, and verification checklist |
 
 ### Post-Analysis Pipeline (fire-and-forget)
 
 After each analysis completes, the orchestrator triggers:
-1. **BigQuery logging** — analysis events and fraud patterns stored for analytics
-2. **Pub/Sub alerts** — fraud alerts published when risk score ≥ 60
+1. **BigQuery logging** — analysis events and risk-indicator patterns stored for analytics
+2. **Pub/Sub alerts** — high-risk alerts published when risk score ≥ 60
 3. **Vertex AI embeddings** — document text embedded for similarity search
 4. **Cloud Monitoring** — latency and counter metrics flushed
 
@@ -110,11 +112,11 @@ After each analysis completes, the orchestrator triggers:
 | Service | Purpose |
 |---------|---------|
 | **Gemini 2.5 Flash** (Vertex AI) | Multimodal document analysis, OCR, reasoning |
-| **Google Search Grounding** | Real-world fraud case detection via live search |
+| **Google Search Grounding** | Real-world case detection and regional news via live search |
 | **Cloud Firestore** | Document metadata, analysis reports, SSE events |
 | **Cloud Storage (GCS)** | Document file storage with signed URLs |
-| **BigQuery** | Analysis event logging, fraud pattern analytics |
-| **Pub/Sub** | Async fraud alerts, dead-letter queue |
+| **BigQuery** | Analysis event logging, risk-indicator analytics |
+| **Pub/Sub** | Async high-risk alerts, dead-letter queue |
 | **Vertex AI Embeddings** | text-embedding-005 for document similarity |
 | **Memorystore (Redis)** | Multi-layer cache (OCR 30d, reports 7d, rate limiting) |
 | **Firebase Auth** | Google OAuth, Apple OAuth, email/password |
@@ -202,7 +204,8 @@ land-fraud-detection/
 │   │   │   ├── core/            # Base agent class
 │   │   │   ├── parser/          # Document Parser Agent
 │   │   │   ├── legal/           # Legal Rules Agent
-│   │   │   ├── fraud/           # Fraud Detection Agent
+│   │   │   ├── fraud/           # Risk Review Agent
+│   │   │   ├── news/            # Regional News Agent (grounded search)
 │   │   │   ├── report/          # Report Generator Agent
 │   │   │   └── orchestrator.py  # Pipeline + post-analysis tasks
 │   │   ├── api/v1/              # REST API endpoints
@@ -213,7 +216,7 @@ land-fraud-detection/
 │   │   │   ├── gcs.py           # GCS file storage
 │   │   │   ├── cache.py         # Redis multi-layer cache
 │   │   │   ├── bigquery.py      # Analytics event logging
-│   │   │   ├── pubsub.py        # Fraud alert publishing
+│   │   │   ├── pubsub.py        # High-risk alert publishing
 │   │   │   ├── embeddings.py    # Vertex AI embeddings
 │   │   │   └── monitoring.py    # Cloud Monitoring metrics
 │   │   └── utils/               # SSE utilities
@@ -265,14 +268,14 @@ Land documents in: **Hindi, English, Tamil, Kannada, Telugu, Marathi** — Gemin
 | **Banking & NBFCs** | Loan-against-property verification before disbursement |
 | **Real Estate Platforms** | Automated listing verification for property marketplaces |
 | **Legal Firms** | Bulk document review for property dispute cases |
-| **Government** | Land registry fraud detection and compliance audits |
+| **Government** | Land registry compliance audits and pre-registration screening |
 | **Insurance** | Property insurance underwriting risk assessment |
 
 ---
 
 ## 🏆 Why This Matters
 
-- **₹1,000+ crore** lost annually to land fraud in India
+- **₹1,000+ crore** lost annually to land-related disputes in India
 - **66%** of civil court cases in India are property disputes
 - Most buyers cannot read or understand land documents
 - No affordable tool exists for common people to verify land papers

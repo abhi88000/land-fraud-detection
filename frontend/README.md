@@ -21,7 +21,7 @@ This is the frontend for the Landshield platform, built with Next.js 14, Materia
 *   **User Authentication:** Secure sign-up/sign-in using Firebase Authentication.
 *   **Document Upload:** Interface to upload PDF and image land documents.
 *   **Real-time Analysis Progress:** Displays live updates of document analysis using Server-Sent Events (SSE).
-*   **Analysis Report Viewer:** Presents detailed analysis reports including risk scores, legal findings, fraud detections, and verification checklists.
+*   **Analysis Report Viewer:** Presents detailed analysis reports including risk scores, legal findings, risk indicators, and verification checklists.
 *   **Responsive UI:** Built with Material UI (MUI) for a consistent and responsive user experience.
 *   **Document Viewer:** Integrates `react-pdf` for displaying uploaded PDF documents directly in the browser.
 *   **Ownership Chain Visualization:** (Planned, will use `reactflow`)

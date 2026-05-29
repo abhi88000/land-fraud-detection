@@ -110,7 +110,7 @@ export default function BundleDetailPage() {
     return () => { eventSourceRef.current?.close(); };
   }, [user, bundleId, startStream]);
 
-  const analysisSteps = ['Parsing Documents', 'Legal Check', 'Fraud Detection', 'Generating Report'];
+  const analysisSteps = ['Parsing Documents', 'Legal Check', 'Risk Review', 'Generating Report'];
   const getActiveStep = () => {
     if (analysisProgress >= 100) return 4;
     if (analysisProgress >= 75) return 3;

@@ -7,12 +7,12 @@ Infosys Gemini Hackathon 2026 · Team Landshield · AI Agents in Action
 
 ## Section 1: Problem Statement
 
-Indian land transactions are the single largest financial decision most families make, yet they are also the most opaque and fraud-prone. A single deal typically involves **8–10 documents** — sale deed, encumbrance certificate (EC), mutation extract, tax receipts, building plan approval, parent documents going back 30 years, RERA registration, khata, and survey records.
+Indian land transactions are the single largest financial decision most families make, yet they are also the most opaque and dispute-prone. A single deal typically involves **8–10 documents** — sale deed, encumbrance certificate (EC), mutation extract, tax receipts, building plan approval, parent documents going back 30 years, RERA registration, khata, and survey records.
 
 Buyers, banks, and even law firms face four compounding pain points:
 
 1. **Information overload.** Each document is 20–80 pages of dense legal Hindi/English/regional script. A buyer cannot read them; a lawyer charges ₹25,000–₹2,00,000 and takes 4–8 weeks.
-2. **Hidden fraud patterns.** Roshni Act allotments, tribal-land sales (PESA, Fifth Schedule), benami transfers, undervaluation, name mismatches across the chain of title, and forged ECs are extremely hard to spot manually.
+2. **Hidden risk patterns.** Roshni Act allotments, tribal-land sales (PESA, Fifth Schedule), benami transfers, undervaluation, name mismatches across the chain of title, and irregular ECs are extremely hard to spot manually.
 3. **Fragmented law.** Rules vary by state (Karnataka vs Telangana vs J&K), by land type (agricultural, urban, tribal), and across central acts (TPA 1882, Registration Act 1908, Stamp Act 1899, RERA 2016, Benami Act 1988).
 4. **No standard verdict.** Two lawyers reviewing the same bundle often disagree. Buyers get a 30-page legal opinion with no clear *go / clarify / stop* outcome.
 
@@ -28,10 +28,10 @@ The user uploads PDFs, picks the state and land type, and Landshield orchestrate
 
 - A **Parser Agent** reads the multi-page PDFs natively (no OCR pre-step) and extracts a strict JSON schema: parties, property, area, stamp duty, registration details, chain of title, dates.
 - A **Legal Rules Agent** validates the extracted data against Indian land law — registration, stamp duty adequacy, state-specific restrictions, RERA compliance.
-- A **Fraud Detection Agent** flags concrete risk patterns — name mismatches, chain-of-title gaps, undervaluation, tribal/Roshni indicators, benami signals.
+- A **Risk Review Agent** flags concrete risk patterns — name mismatches, chain-of-title gaps, undervaluation, tribal/Roshni indicators, benami signals.
 - A **Report Agent** consolidates everything into a graded summary with severity counts (low / medium / high / critical) and recommended next steps.
 
-Findings are persisted to Firestore, streamed to the frontend via Server-Sent Events, and high-risk patterns are pushed to BigQuery via Pub/Sub for cross-user fraud analytics.
+Findings are persisted to Firestore, streamed to the frontend via Server-Sent Events, and high-risk patterns are pushed to BigQuery via Pub/Sub for cross-user risk analytics.
 
 The output is not a chatbot answer — it is a structured, auditable, lawyer-grade report.
 
@@ -43,7 +43,7 @@ The output is not a chatbot answer — it is a structured, auditable, lawyer-gra
 |---|---|
 | **Primary domain** | Real Estate |
 | **Secondary domain** | Legal Tech / RegTech |
-| **Sub-domains served** | Document verification · Fraud detection · Compliance / due-diligence assistance · Risk grading |
+| **Sub-domains served** | Document verification · Risk review · Compliance / due-diligence assistance · Risk grading |
 | **Industries that consume it** | Residential & commercial buyers · Banks (home-loan title checks) · NBFCs · Title insurers · Developers (land acquisition) · Law firms (litigation prep) · Government registrars (anomaly screening) |
 | **Geography** | India (Karnataka, Telangana, Maharashtra, Tamil Nadu, Delhi-NCR, J&K first; pan-India by design) |
 | **Regulatory frameworks encoded** | Transfer of Property Act 1882 · Registration Act 1908 · Indian Stamp Act 1899 · RERA 2016 · Benami Property Act 1988 · PESA 1996 · State-specific land-revenue acts · J&K Roshni Act |
@@ -64,10 +64,10 @@ The output is not a chatbot answer — it is a structured, auditable, lawyer-gra
 2. Frontend pushes files to FastAPI; backend stores them in GCS (signed URLs) and creates a Firestore record (`status=queued`).
 3. Orchestrator publishes an `analysis_jobs` message to Pub/Sub; a Cloud Run worker picks it up.
 4. Parser Agent extracts a structured JSON schema from every document.
-5. Legal Rules Agent and Fraud Detection Agent run in parallel on the extracted data.
+5. Legal Rules Agent, Risk Review Agent, and Regional News Agent run in parallel on the extracted data.
 6. Findings are normalised, deduplicated, consolidated, and graded by severity.
 7. Report Agent generates the final lawyer-style report.
-8. Report is persisted to Firestore; if `risk_score ≥ 60`, a `fraud_alert` is published to Pub/Sub → BigQuery streaming insert for cross-user pattern detection.
+8. Report is persisted to Firestore; if `risk_score ≥ 60`, a `risk_alert` is published to Pub/Sub → BigQuery streaming insert for cross-user pattern detection.
 9. SSE stream pushes live progress + final report to the buyer's browser.
 10. Cloud Logging + Cloud Monitoring capture agent latency, model cost, and error rates throughout.
 
@@ -85,8 +85,8 @@ The output is not a chatbot answer — it is a structured, auditable, lawyer-gra
 | **Cloud Run** | Serverless hosting for FastAPI backend, Next.js frontend, and async workers. Auto-scales per request. |
 | **Cloud Storage (GCS)** | Stores uploaded PDFs with signed URLs and lifecycle TTL. |
 | **Firestore (Native)** | Document database for analysis state, findings, parties, audit trail. |
-| **Pub/Sub** | Decouples API from heavy analysis; topics for `analysis_jobs`, `fraud_alert`, `embedding_jobs`; dead-letter queue. |
-| **BigQuery** | Cross-user fraud-pattern analytics and agent telemetry. Streaming insert from Pub/Sub. |
+| **Pub/Sub** | Decouples API from heavy analysis; topics for `analysis_jobs`, `risk_alert`, `embedding_jobs`; dead-letter queue. |
+| **BigQuery** | Cross-user risk-pattern analytics and agent telemetry. Streaming insert from Pub/Sub. |
 | **Firebase Authentication** | Email/password and Google sign-in. ID tokens verified server-side. |
 | **Secret Manager** | Gemini API keys, Firebase admin credentials, third-party tokens. |
 | **Cloud Build** | CI/CD: GitHub push → build → push to Artifact Registry → deploy Cloud Run. |
@@ -106,7 +106,7 @@ The output is not a chatbot answer — it is a structured, auditable, lawyer-gra
 4. **Chain-of-title validation** — verify continuous ownership across parent documents; flag missing links.
 5. **Stamp-duty & registration check** — verify duty adequacy against state ready-reckoner rates and registration completeness.
 6. **State-specific rule enforcement** — apply Karnataka, Telangana, Maharashtra, J&K, etc. rules dynamically based on declared state.
-7. **Fraud-pattern detection** — name mismatches, undervaluation, tribal-land flags (PESA/Fifth Schedule), Roshni Act allotments, benami signals, fake registration numbers.
+7. **Risk-pattern surfacing** — name mismatches, undervaluation, tribal-land flags (PESA/Fifth Schedule), Roshni Act allotments, benami signals, irregular registration numbers.
 8. **Severity grading** — every finding tagged low / medium / high / critical with evidence and remediation.
 9. **Lawyer-style report synthesis** — short paragraphs grouped by topic, with verdict (`go / clarify / stop`) and next-step checklist.
 10. **Audit trail & explainability** — every finding linked back to source document + page; persisted for compliance.
@@ -116,7 +116,7 @@ The output is not a chatbot answer — it is a structured, auditable, lawyer-gra
 - Streaming progress updates (SSE) — buyer sees each agent finishing live.
 - Bundle-level reports (multiple documents analysed as one transaction).
 - Re-run any single agent on the same bundle (e.g., legal-only refresh after rule update).
-- Cross-user fraud correlation via BigQuery (same seller, same survey number, repeated patterns).
+- Cross-user risk correlation via BigQuery (same seller, same survey number, repeated patterns).
 - API-first design — any agent can be exposed as its own Cloud Run service for enterprise customers (banks, insurers).
 
 ### Capability matrix
@@ -125,7 +125,7 @@ The output is not a chatbot answer — it is a structured, auditable, lawyer-gra
 |---|---|---|
 | Read 8–10 multi-page PDFs | 2–5 days | < 30 s |
 | Validate against state land law | partial | systematic |
-| Flag fraud patterns | experience-based | rule + ML pattern |
+| Flag risk patterns | experience-based | rule + ML pattern |
 | Produce structured report | inconsistent | deterministic schema |
 | Audit trail | manual notes | full lineage |
 | Cost per deal | ₹25 k – ₹2 L | < ₹100 of compute |
@@ -155,14 +155,14 @@ The output is not a chatbot answer — it is a structured, auditable, lawyer-gra
 ### Macro impact (India)
 - Residential market: ~**₹100 lakh crore** TAM.
 - **66 %** of civil litigation is land-related (Niti Aayog) — Landshield directly attacks the upstream cause.
-- Government registrars can run it as a screening layer → fewer fraudulent registrations entering the system.
+- Government registrars can run it as a screening layer → fewer non-compliant registrations entering the system.
 
 ### Quantified value per 1,000 deals
 | Metric | Before | After |
 |---|---|---|
 | Total cost of due diligence | ₹5 – 20 cr | < ₹10 lakh |
 | Total time | ~4,000 weeks | ~25 hours |
-| Fraud caught early | ~10 % | ~85 %+ |
+| Risk caught early | ~10 % | ~85 %+ |
 
 ---
 
@@ -223,7 +223,7 @@ The output is not a chatbot answer — it is a structured, auditable, lawyer-gra
 }
 ```
 
-Output channels: live SSE stream, persisted Firestore document, downloadable PDF report, and BigQuery row for fraud-pattern analytics.
+Output channels: live SSE stream, persisted Firestore document, downloadable PDF report, and BigQuery row for risk-pattern analytics.
 
 ---
 
@@ -233,21 +233,21 @@ Output channels: live SSE stream, persisted Firestore document, downloadable PDF
 
 1. **Strict JSON schema** — Parser output is constrained by a Pydantic schema; malformed responses are retried.
 2. **Per-agent focused prompts** — each Gemini agent has one job and a narrow output contract; no general-purpose chat.
-3. **Two-pass consolidation** — findings from Legal + Fraud are deduped (same root cause) and graded before reporting.
+3. **Two-pass consolidation** — findings from Legal + Risk Review are deduped (same root cause) and graded before reporting.
 4. **Evidence linking** — every finding carries `evidence` (document + page) so a human can verify in seconds.
 5. **State-aware rules** — rule packs per state prevent over-flagging (e.g., agricultural restrictions don't fire on urban deeds).
 6. **Severity grading rubric** — deterministic mapping from finding type → severity, not LLM-guessed.
 7. **Confidence thresholds** — low-confidence extractions are surfaced as `clarify` items, not silent failures.
 8. **Audit trail** — agents-run, latencies, costs, and inputs/outputs persisted for every analysis.
 9. **Human-in-the-loop hooks** — `verdict: clarify` is explicit; the system never pretends to replace legal sign-off.
-10. **Continuous evaluation** — golden test bundles (fraudulent + clean samples in [docs/samples/](../samples/)) regression-tested on every prompt change.
+10. **Continuous evaluation** — golden test bundles (high-risk + clean samples in [docs/samples/](../samples/)) regression-tested on every prompt change.
 
 ### Target precision metrics (internal)
 | Metric | Target |
 |---|---|
 | Parser field extraction accuracy | ≥ 95 % |
 | Legal-rule precision (no false positives) | ≥ 90 % |
-| Fraud-pattern recall on known-fraud bundles | ≥ 85 % |
+| Risk-pattern recall on labelled high-risk bundles | ≥ 85 % |
 | Hallucination rate (claims without evidence) | < 1 % |
 | End-to-end latency (P95) | < 90 s |
 | Cost per analysis | < ₹100 |
