@@ -47,6 +47,7 @@ class ReportInput(BaseModel):
     extracted_data: ExtractedData
     legal_findings: List[LegalFinding]
     fraud_findings: List[FraudFinding]
+    missing_documents: List[str] = []
 
 class ReportGeneratorAgent(BaseAgent[ReportInput, AnalysisReport]):
     def __init__(self):
@@ -83,7 +84,13 @@ class ReportGeneratorAgent(BaseAgent[ReportInput, AnalysisReport]):
         if not extracted_data.party_names: completeness_score += 15
         if not extracted_data.property_details: completeness_score += 20
         if not (extracted_data.registration_info and extracted_data.registration_info.registration_number): completeness_score += 15
-        
+
+        # Each recommended-but-missing supporting document hurts completeness.
+        # We can't verify what we can't see, so the bundle should not score well
+        # just because the one document provided happened to be clean.
+        missing_docs = list(input_data.missing_documents or [])
+        completeness_score += 25 * len(missing_docs)
+
         # Max scores for categories (adjust as needed for weighting)
         max_legal_score = len(legal_findings) * severity_points[Severity.HIGH] if legal_findings else 1
         max_fraud_score = len(fraud_findings) * severity_points[Severity.HIGH] if fraud_findings else 1
@@ -98,6 +105,14 @@ class ReportGeneratorAgent(BaseAgent[ReportInput, AnalysisReport]):
         overall_score = int((legal_score + fraud_score + completeness_score) / 3)
         # Invert the score for user readability (lower score = better)
         overall_score = max(0, min(100, 100 - overall_score))
+
+        # Hard cap: a bundle with critical supporting documents missing cannot
+        # be presented as "high trust", regardless of how clean the one
+        # document we did see looks. This keeps the score honest.
+        if len(missing_docs) >= 3:
+            overall_score = min(overall_score, 40)
+        elif len(missing_docs) >= 1:
+            overall_score = min(overall_score, 60)
 
         risk_score = RiskScore(
             overall_score=overall_score,

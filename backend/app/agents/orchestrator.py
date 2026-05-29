@@ -450,12 +450,14 @@ class OrchestratorAgent(BaseAgent[str, AnalysisReport]):
             # 5. Identify missing documents based on state/land_type
             missing_docs = self._identify_missing_documents(doc_types_found, bundle.state, bundle.land_type)
 
-            # 6. Generate report
+            # 6. Generate report — feed missing_docs in so the score reflects
+            # the fact that we couldn't verify supporting evidence.
             report_input = ReportInput(
                 document_id=bundle_id,
                 extracted_data=combined,
                 legal_findings=legal_findings,
                 fraud_findings=fraud_findings,
+                missing_documents=missing_docs,
             )
             report = await self.report_agent.run(report_input, bundle_id)
 
